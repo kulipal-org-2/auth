@@ -7,6 +7,8 @@ service AuthService {
   rpc Login (LoginDto) returns (LoginResponse) {}
   rpc RefreshToken (RefreshTokenDto) returns (LoginResponse) {}
   rpc Register (RegisterDto) returns (MessageResponse) {}
+  rpc LoginGoogle (LoginGoogleDto) returns (LoginResponse) {}
+  rpc LoginApple (LoginAppleDto) returns (LoginResponse) {}
 }
 
 message LoginDto {
@@ -27,6 +29,15 @@ message RegisterDto {
   bool agreeToTerms = 5;
   string phoneNumber = 6;
   string source = 7;
+}
+
+message LoginGoogleDto {
+  string accessToken = 1;
+  string refreshToken = 2;
+}
+
+message LoginAppleDto {
+  string code = 1;
 }
 
 

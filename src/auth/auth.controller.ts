@@ -1,10 +1,16 @@
 import { Controller } from '@nestjs/common';
 import { GrpcMethod } from '@nestjs/microservices';
-import { type RegisterRequest, type LoginRequest } from './types/auth.type';
+import {
+  type RegisterRequest,
+  type LoginRequest,
+  type LoginGoogleRequest,
+  type LoginAppleRequest,
+} from './types/auth.type';
 import { LoginService } from './services/login.service';
 import { RefreshAccessTokenService } from './services/refresh-token.service';
 import { RegisterService } from './services/register.service';
 import { LoginResponse, MessageResponse } from 'kulipal-shared';
+import { OauthService } from './services/oauth.service';
 
 @Controller('auth')
 export class AuthController {
@@ -12,6 +18,7 @@ export class AuthController {
     private readonly loginService: LoginService,
     private readonly refreshToken: RefreshAccessTokenService,
     private readonly registerService: RegisterService,
+    private readonly oauthService: OauthService,
   ) {}
 
   @GrpcMethod('AuthService', 'Login')
@@ -30,5 +37,15 @@ export class AuthController {
   @GrpcMethod('AuthService', 'Register')
   register(data: RegisterRequest): Promise<MessageResponse> {
     return this.registerService.execute(data);
+  }
+
+  @GrpcMethod('AuthService', 'LoginGoogle')
+  loginGoogle(data: LoginGoogleRequest): Promise<LoginResponse> {
+    return this.oauthService.authenticateGoogleUser(data);
+  }
+
+  @GrpcMethod('AuthService', 'LoginApple')
+  loginApple(data: LoginAppleRequest): Promise<LoginResponse> {
+    return this.oauthService.authenticateAppleUser(data.code);
   }
 }

@@ -6,6 +6,11 @@ import { google, people_v1 } from 'googleapis';
 import { default as jwksClient } from 'jwks-rsa';
 import { APPLE_ISSUER, JWKS_URI } from 'src/constants';
 import { CustomLogger as Logger } from 'kulipal-shared';
+import { EntityManager } from '@mikro-orm/postgresql';
+import { RefreshToken, User } from 'src/database';
+import { createHash, randomBytes } from 'crypto';
+import { LoginResponse } from './login.service';
+import { LoginGoogleRequest } from '../types/auth.type';
 // import { APPLE_ISSUER, JWKS_URI } from 'src/constants';
 // import * as jwtTool from 'jsonwebtoken';
 // import { RpcException } from '@nestjs/microservices';
@@ -34,6 +39,7 @@ export class OauthService {
   constructor(
     private configService: ConfigService,
     private jwt: JwtService,
+    private readonly em: EntityManager,
     // private user: UserAdapter,
     // private jwtToken: JwtTokenAdapter,
     // private userNofificationToken: UserNotificationTokenAdapter,
@@ -44,6 +50,7 @@ export class OauthService {
       client_secret:
         this.configService.get<string>('GOOGLE_CLIENT_SECRET') ?? '',
     });
+
     this.jwksClient = jwksClient({
       jwksUri: JWKS_URI,
       timeout: 30000,
@@ -69,10 +76,9 @@ export class OauthService {
   }
 
   async authenticateGoogleUser({
-    access_token: accessToken,
-    refresh_token: refreshToken,
-    notificationToken,
-  }) {
+    accessToken,
+    refreshToken,
+  }: LoginGoogleRequest): Promise<LoginResponse> {
     try {
       this.oauthClient.setCredentials({
         access_token: accessToken,
@@ -81,18 +87,28 @@ export class OauthService {
 
       const r = await this.getUserInfo().then(async ({ emailAddresses }) => {
         const email = emailAddresses?.[0].value?.toLowerCase() ?? '';
-        const d = await this.verifyUser(email, notificationToken);
+        const d = await this.verifyUser(email);
         return d;
       });
 
       return r;
     } catch (error: any) {
       this.logger.warn(error);
-      throw new Error(error.message || error);
+
+      return {
+        message: 'We could not complete that request',
+        success: false,
+        statusCode: 400,
+        credentials: {
+          accessToken: '',
+          refreshToken: '',
+          userId: '',
+        },
+      };
     }
   }
 
-  async authenticateAppleUser(code: string, notificationToken: string) {
+  async authenticateAppleUser(code: string): Promise<LoginResponse> {
     try {
       const data = this.jwt.decode(code, {
         complete: true,
@@ -113,68 +129,78 @@ export class OauthService {
         await this.jwksClient.getSigningKey(kid)
       ).getPublicKey();
 
-      //   const= {
-      //     algorithms: [alg],
-      //     ignoreExpiration: false,
-      //     issuer: APPLE_ISSUER,
-      //   }
-      const { email } = this.jwt.verify(code, publicKey);
+      const { email } = this.jwt.verify(code, {
+        publicKey,
+        algorithms: [alg],
+        ignoreExpiration: false,
+        issuer: APPLE_ISSUER,
+      });
 
-      return this.verifyUser(email, notificationToken);
+      return this.verifyUser(email);
     } catch (error: any) {
       this.logger.warn(error);
 
-      throw new Error(error['message'] || error);
+      return {
+        message: 'We could not complete that request',
+        success: false,
+        statusCode: 400,
+        credentials: {
+          accessToken: '',
+          refreshToken: '',
+          userId: '',
+        },
+      };
     }
   }
 
-  async verifyUser(email: string, notificationToken: string) {
-    // const _user = await this.user.getUnique(
-    //   { email },
-    //   { profile: { select: { id: true, industry: true } } },
-    // );
-    // if (!_user) {
-    //   this.logger.log(`User with email: ${email} not found`);
+  async verifyUser(email: string) {
+    const existingUser = await this.em.findOne(User, {
+      email,
+    });
+    if (!existingUser) {
+      this.logger.log(`User with email: ${email} not found`);
 
-    //   throw new Error('User not registered. Please sign up');
-    // }
+      return {
+        message:
+          "We couldn't find a user associated with that account. Please sign up.",
+        statusCode: 404,
+        success: false,
+        credentials: {
+          accessToken: '',
+          refreshToken: '',
+          userId: '',
+        },
+      };
+    }
 
-    const user = {
-      //   type: _user.type,
-      //   email: _user.email,
-      //   id: _user.id,
-      //   isEmailVerified: _user.isEmailVerified,
-      //   isKycVerified: _user.isKycVerified,
-      //   hasProfile: !!_user.profileId,
-      //   industry: _user?.profile?.industry,
-    };
-
-    const access_token = await this.createAccessToken(user);
-    const refresh_token = await this.createRefreshToken();
-
-    // const expiryDate = dayjs().add(30, 'day').toDate();
+    const credentials = await this.generateCredentials(existingUser.id);
 
     return {
-      access_token: access_token,
-      //   access_token_expires_on: expiryDate,
-      refresh_token: refresh_token,
-      date: new Date(),
-      ...user,
+      message: 'Login successful',
+      credentials,
+      statusCode: 200,
+      success: true,
     };
   }
 
-  private async createAccessToken(payload: object) {
-    return this.jwt.sign(payload);
-  }
+  private async generateCredentials(userId: string) {
+    const accessToken = this.jwt.sign({ userId }, { expiresIn: '1h' });
+    const refreshToken = randomBytes(32).toString('base64url');
+    const tokenHash = createHash('sha512').update(refreshToken).digest('hex');
 
-  private async createRefreshToken() {
-    return this.jwt.sign(
-      {
-        type: 'refresh',
-      },
-      {
-        expiresIn: '90D',
-      },
-    );
+    await this.em
+      .insert(RefreshToken, {
+        userId,
+        tokenHash,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
+      })
+      .catch((error) => {
+        this.logger.error(
+          `Failed to store refresh token for user ${userId}: ${error.message}`,
+        );
+        throw new Error('Internal server error. Please try again later.');
+      });
+
+    return { accessToken, refreshToken, userId };
   }
 }

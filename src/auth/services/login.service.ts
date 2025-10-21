@@ -109,7 +109,6 @@ export class LoginService {
     const refreshToken = randomBytes(32).toString('base64url');
     const tokenHash = createHash('sha512').update(refreshToken).digest('hex');
 
-    console.log(refreshToken, tokenHash);
     await this.em
       .insert(RefreshToken, {
         userId,
