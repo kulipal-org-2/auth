@@ -1,0 +1,50 @@
+syntax = "proto3";
+// import "google/protobuf/empty.proto";
+
+package auth;
+
+service AuthService {
+  rpc Login (LoginDto) returns (LoginResponse) {}
+  rpc RefreshToken (RefreshTokenDto) returns (LoginResponse) {}
+  rpc Register (RegisterDto) returns (MessageResponse) {}
+}
+
+message LoginDto {
+  string email = 1;
+  string password = 2;
+}
+
+message RefreshTokenDto {
+    string userId = 1;
+    string refreshToken = 2;
+}
+
+message RegisterDto {
+  string email = 1;
+  string password = 2;
+  string firstName = 3;
+  string lastName = 4;
+  bool agreeToTerms = 5;
+  string phoneNumber = 6;
+  string source = 7;
+}
+
+
+message LoginResponse {
+  message Credentials {
+    string accessToken = 1;
+    string refreshToken = 2;
+    string userId = 3;
+  }
+
+  Credentials credentials = 1;
+  string message = 2;
+  int32 statusCode = 3;
+  bool success = 4;
+}
+
+message MessageResponse {
+  string message = 1;
+  int32 statusCode = 2;
+  bool success = 3;
+}
