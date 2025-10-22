@@ -8,45 +8,58 @@ import { Migrator, TSMigrationGenerator } from '@mikro-orm/migrations';
 export const MikroOrmOptions: MikroOrmModuleAsyncOptions = {
   imports: [ConfigModule],
   inject: [ConfigService],
-  useFactory: (configService: ConfigService) => ({
-    driver: PostgreSqlDriver,
-    dbName: configService.get<string>(envConfig.DATABASE_NAME),
-    user: configService.get<string>(envConfig.DATABASE_USER),
-    password: configService.get<string>(envConfig.DATABASE_PASSWORD),
-    host: configService.get<string>(envConfig.DATABASE_HOST),
-    port: parseInt(
-      configService.get<string>(envConfig.DATABASE_PORT) ?? '5432',
-      10,
-    ),
-    schema: configService.get<string>('DATABASE_SCHEMA'),
-    entities: ['./dist/database/entities'],
-    entitiesTs: ['./src/database/entities'],
-    driverOptions: {
-      ...(process.env.NODE_ENV === 'production' && {
-        connection: { ssl: { rejectUnauthorized: false } },
-      }),
-    },
-    debug: configService.get<string>('NODE_ENV') !== 'production',
-    extensions: [Migrator],
-    migrations: {
-      tableName: 'mikro_orm_migrations',
-      path: 'dist/migrations',
-      pathTs: 'src/migrations',
-      glob: '!(*.d).{js,ts,cjs}',
-      silent: false,
-      transactional: true,
-      disableForeignKeys: false,
-      allOrNothing: true,
-      dropTables: false,
-      safe: true,
-      snapshot: true,
-      emit: 'ts',
-      generator: TSMigrationGenerator,
-      fileName: (timestamp: string, name?: string) =>
-        `Migration${timestamp}${name ? '_' + name : ''}`,
-    },
-    // metadataProvider: TsMorphMetadataProvider,
-  }),
+  useFactory: (configService: ConfigService) => {
+    console.log({
+      driver: PostgreSqlDriver,
+      dbName: configService.get<string>(envConfig.DATABASE_NAME),
+      user: configService.get<string>(envConfig.DATABASE_USER),
+      password: configService.get<string>(envConfig.DATABASE_PASSWORD),
+      host: configService.get<string>(envConfig.DATABASE_HOST),
+      port: parseInt(
+        configService.get<string>(envConfig.DATABASE_PORT) ?? '5432',
+        10,
+      ),
+    });
+    return {
+      driver: PostgreSqlDriver,
+      dbName: configService.get<string>(envConfig.DATABASE_NAME),
+      user: configService.get<string>(envConfig.DATABASE_USER),
+      password: configService.get<string>(envConfig.DATABASE_PASSWORD),
+      host: configService.get<string>(envConfig.DATABASE_HOST),
+      port: parseInt(
+        configService.get<string>(envConfig.DATABASE_PORT) ?? '5432',
+        10,
+      ),
+      schema: configService.get<string>('DATABASE_SCHEMA'),
+      entities: ['./dist/database/entities'],
+      entitiesTs: ['./src/database/entities'],
+      driverOptions: {
+        ...(process.env.NODE_ENV === 'production' && {
+          connection: { ssl: { rejectUnauthorized: false } },
+        }),
+      },
+      debug: configService.get<string>('NODE_ENV') !== 'production',
+      extensions: [Migrator],
+      migrations: {
+        tableName: 'mikro_orm_migrations',
+        path: 'dist/migrations',
+        pathTs: 'src/migrations',
+        glob: '!(*.d).{js,ts,cjs}',
+        silent: false,
+        transactional: true,
+        disableForeignKeys: false,
+        allOrNothing: true,
+        dropTables: false,
+        safe: true,
+        snapshot: true,
+        emit: 'ts',
+        generator: TSMigrationGenerator,
+        fileName: (timestamp: string, name?: string) =>
+          `Migration${timestamp}${name ? '_' + name : ''}`,
+      },
+      // metadataProvider: TsMorphMetadataProvider,
+    };
+  },
   driver: PostgreSqlDriver,
 };
 
