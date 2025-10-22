@@ -11,3 +11,12 @@ export type LoginRequest = {
   email: string;
   password: string;
 };
+
+export type LoginGoogleRequest = {
+  accessToken: string;
+  refreshToken: string;
+};
+
+export type LoginAppleRequest = {
+  code: string;
+};
