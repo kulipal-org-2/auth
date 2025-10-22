@@ -22,9 +22,9 @@ export const MikroOrmOptions: MikroOrmModuleAsyncOptions = {
     entities: ['./dist/database/entities'],
     entitiesTs: ['./src/database/entities'],
     driverOptions: {
-      connection: {
-        ssl: configService.get<string>('NODE_ENV') === 'production',
-      },
+      ...(process.env.NODE_ENV === 'production' && {
+        connection: { ssl: { rejectUnauthorized: false } },
+      }),
     },
     debug: configService.get<string>('NODE_ENV') !== 'production',
     extensions: [Migrator],
