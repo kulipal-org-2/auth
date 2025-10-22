@@ -7,8 +7,8 @@ import { RefreshTokenRepository } from './repositories/refresh-token.repository'
 
 @Module({
   imports: [
-    // MikroOrmModule.forRootAsync(MikroOrmOptions),
-    // MikroOrmModule.forFeature([User, RefreshToken]),
+    MikroOrmModule.forRootAsync(MikroOrmOptions),
+    MikroOrmModule.forFeature([User, RefreshToken]),
   ],
   providers: [UserRepository, RefreshTokenRepository],
   exports: [UserRepository, RefreshTokenRepository],
