@@ -8,7 +8,7 @@ import { DatabaseModule } from './database/database.module';
   imports: [
     // AuthModule,
     ConfigModule.forRoot({ isGlobal: true }),
-    DatabaseModule,
+    // DatabaseModule,
   ],
   controllers: [AppController],
   providers: [AppService],
