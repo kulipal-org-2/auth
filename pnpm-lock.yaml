@@ -14,9 +14,6 @@ importers:
       '@grpc/proto-loader':
         specifier: ^0.8.0
         version: 0.8.0
-      '@kulipal/shared':
-        specifier: link:../../../../Library/pnpm/global/5/node_modules/@kulipal/shared
-        version: link:../../../../Library/pnpm/global/5/node_modules/@kulipal/shared
       '@mikro-orm/core':
         specifier: ^6.5.8
         version: 6.5.8
