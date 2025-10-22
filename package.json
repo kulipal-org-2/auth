@@ -40,7 +40,7 @@
     "google-auth-library": "^10.3.0",
     "googleapis": "^160.0.0",
     "jwks-rsa": "^3.2.0",
-    "kulipal-shared": "link:../../../../Library/pnpm/global/5/node_modules/kulipal-shared",
+    "kulipal-shared": "^1.2.4",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
   },
