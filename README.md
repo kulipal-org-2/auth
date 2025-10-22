@@ -23,13 +23,40 @@
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+Authentication microservice built with [NestJS](https://github.com/nestjs/nest) framework. This service handles user authentication, registration, OAuth (Google, Apple), and JWT token management using gRPC.
+
+## Prerequisites
+
+- Node.js (v18 or higher)
+- pnpm
+- PostgreSQL database
 
 ## Project setup
 
-```bash
-$ pnpm install
-```
+1. **Install dependencies**
+   ```bash
+   $ pnpm install
+   ```
+
+2. **Environment Configuration**
+   
+   Copy the `.env.example` file to `.env`:
+   ```bash
+   $ cp .env.example .env
+   ```
+
+   Update the `.env` file with your configuration:
+   - **Database**: Configure PostgreSQL connection details
+   - **JWT_SECRET**: Set a strong secret key for JWT token generation
+   - **OAuth**: Add Google and Apple OAuth credentials (optional, if using OAuth)
+   - **URL**: gRPC server URL (default: localhost:6000)
+
+3. **Database Setup**
+   
+   Run database migrations:
+   ```bash
+   $ pnpm run migration:up
+   ```
 
 ## Compile and run the project
 
@@ -43,6 +70,8 @@ $ pnpm run start:dev
 # production mode
 $ pnpm run start:prod
 ```
+
+The gRPC server will start on `localhost:6000` (or your configured URL).
 
 ## Run tests
 
