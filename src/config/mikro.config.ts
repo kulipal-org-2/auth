@@ -42,6 +42,7 @@ export const MikroOrmOptions: MikroOrmModuleAsyncOptions = {
     },
     // metadataProvider: TsMorphMetadataProvider,
   }),
+  driver: PostgreSqlDriver,
 };
 
 dotenvConfig();
