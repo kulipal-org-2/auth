@@ -24,7 +24,6 @@
   "dependencies": {
     "@grpc/grpc-js": "^1.14.0",
     "@grpc/proto-loader": "^0.8.0",
-    "@kulipal/shared": "link:../../../../Library/pnpm/global/5/node_modules/@kulipal/shared",
     "@mikro-orm/core": "^6.5.8",
     "@mikro-orm/migrations": "^6.5.8",
     "@mikro-orm/nestjs": "^6.1.1",
@@ -87,5 +86,9 @@
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
   },
-  "packageManager": "pnpm@10.19.0+sha512.c9fc7236e92adf5c8af42fd5bf1612df99c2ceb62f27047032f4720b33f8eacdde311865e91c411f2774f618d82f320808ecb51718bfa82c060c4ba7c76a32b8"
+  "packageManager": "pnpm@10.19.0+sha512.c9fc7236e92adf5c8af42fd5bf1612df99c2ceb62f27047032f4720b33f8eacdde311865e91c411f2774f618d82f320808ecb51718bfa82c060c4ba7c76a32b8",
+  "engines": {
+    "node": "22.x",
+    "pnpm": "10.x"
+  }
 }
