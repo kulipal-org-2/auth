@@ -1,10 +1,10 @@
-import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { verify } from 'argon2';
 import { createHash, randomBytes } from 'crypto';
 import { CustomLogger as Logger } from 'kulipal-shared';
-import { RefreshToken, User } from 'src/database';
+import { RefreshTokenRepository } from 'src/database/repositories/refresh-token.repository';
+import { UserRepository } from 'src/database/repositories/user.repository';
 
 export type LoginType = {
   email: string;
@@ -25,17 +25,18 @@ export type LoginResponse = {
 @Injectable()
 export class LoginService {
   private readonly logger = new Logger(LoginService.name);
+
   constructor(
-    private readonly em: EntityManager,
+    private readonly userRepository: UserRepository,
+    private readonly refreshTokenRepository: RefreshTokenRepository,
     private jwtService: JwtService,
   ) {}
 
-  @CreateRequestContext()
   async execute(data: LoginType): Promise<LoginResponse> {
     this.logger.log(`Attempting to login user with email ${data.email}`);
 
     const { email, password } = data;
-    const existingUser = await this.em.findOne(User, {
+    const existingUser = await this.userRepository.findOne({
       email,
     });
 
@@ -109,8 +110,8 @@ export class LoginService {
     const refreshToken = randomBytes(32).toString('base64url');
     const tokenHash = createHash('sha512').update(refreshToken).digest('hex');
 
-    await this.em
-      .insert(RefreshToken, {
+    await this.refreshTokenRepository
+      .insert({
         userId,
         tokenHash,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days

@@ -1,8 +1,8 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
-import { User } from 'src/database';
-import { type CreateUserType, CustomLogger as Logger } from 'kulipal-shared';
-import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
+import { type CreateUserType } from 'kulipal-shared';
 import { hash } from 'argon2';
+import { UserRepository } from 'src/database/repositories/user.repository';
+import { EntityManager } from '@mikro-orm/postgresql';
 
 export type MessageResponse = {
   message: string;
@@ -13,27 +13,29 @@ export type MessageResponse = {
 @Injectable()
 export class RegisterService {
   private readonly logger = new Logger(RegisterService.name);
-  constructor(private readonly em: EntityManager) {}
+  constructor(
+    private readonly userRepository: UserRepository,
+    private readonly em: EntityManager,
+  ) {}
 
-  @CreateRequestContext()
   async execute(data: CreateUserType): Promise<MessageResponse> {
     this.logger.log(`Attempting to register user with email ${data.email}`);
     const {
-      agreeToTerms,
       email,
       firstName,
       lastName,
       password,
       phoneNumber,
       source,
+      agreeToTerms,
     } = data;
-
-    const existingUser = await this.em.findOne(User, {
+    const existingUser = await this.userRepository.findOne({
       email,
     });
 
     if (existingUser) {
       this.logger.warn(`User with email ${email} found to already exist.`);
+
       return {
         message: 'There is an existing account with this email. Please login',
         success: false,
@@ -41,7 +43,7 @@ export class RegisterService {
       };
     }
 
-    const user = this.em.create(User, {
+    const user = this.userRepository.create({
       agreeToTerms,
       email,
       firstName,

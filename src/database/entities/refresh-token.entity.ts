@@ -1,8 +1,11 @@
-import { Entity, Property } from '@mikro-orm/core';
+import { Entity, EntityRepositoryType, Property } from '@mikro-orm/postgresql';
 import { CustomBaseEntity } from './base.entity';
+import { RefreshTokenRepository } from '../repositories/refresh-token.repository';
 
-@Entity()
+@Entity({ repository: () => RefreshTokenRepository })
 export class RefreshToken extends CustomBaseEntity {
+  [EntityRepositoryType]?: RefreshTokenRepository;
+
   @Property()
   userId!: string;
 

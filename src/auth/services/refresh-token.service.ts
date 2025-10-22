@@ -2,20 +2,18 @@ import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { CustomLogger as Logger } from 'kulipal-shared';
 import { createHash, randomBytes } from 'crypto';
-import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
-import { RefreshToken } from 'src/database';
 import { LoginResponse } from './login.service';
+import { RefreshTokenRepository } from 'src/database/repositories/refresh-token.repository';
 
 @Injectable()
 export class RefreshAccessTokenService {
   private readonly logger = new Logger(RefreshAccessTokenService.name);
 
   constructor(
-    private readonly em: EntityManager,
+    private readonly refreshTokenRepository: RefreshTokenRepository,
     private readonly jwtService: JwtService,
   ) {}
 
-  @CreateRequestContext()
   async execute({
     userId,
     refreshToken,
@@ -26,7 +24,7 @@ export class RefreshAccessTokenService {
     const hashed = createHash('sha512').update(refreshToken).digest('hex');
     console.log(hashed);
 
-    const token = await this.em.findOne(RefreshToken, {
+    const token = await this.refreshTokenRepository.findOne({
       userId,
       tokenHash: hashed,
     });
@@ -52,8 +50,7 @@ export class RefreshAccessTokenService {
       .update(newRawRefreshToken)
       .digest('hex');
 
-    await this.em.upsert(
-      RefreshToken,
+    await this.refreshTokenRepository.upsert(
       {
         tokenHash: newHashedRefreshToken,
         userId,

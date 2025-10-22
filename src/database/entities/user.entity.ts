@@ -1,8 +1,11 @@
-import { Entity, Property } from '@mikro-orm/core';
 import { CustomBaseEntity } from './base.entity';
+import { UserRepository } from '../repositories/user.repository';
+import { Entity, EntityRepositoryType, Property } from '@mikro-orm/postgresql';
 
-@Entity()
+@Entity({ repository: () => UserRepository })
 export class User extends CustomBaseEntity {
+  [EntityRepositoryType]?: UserRepository;
+
   @Property()
   firstName!: string;
 
