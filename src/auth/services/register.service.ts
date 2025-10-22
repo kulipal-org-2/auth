@@ -2,7 +2,7 @@ import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { type CreateUserType } from 'kulipal-shared';
 import { hash } from 'argon2';
 import { UserRepository } from 'src/database/repositories/user.repository';
-import { EntityManager } from '@mikro-orm/postgresql';
+import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
 
 export type MessageResponse = {
   message: string;
@@ -18,6 +18,7 @@ export class RegisterService {
     private readonly em: EntityManager,
   ) {}
 
+  @CreateRequestContext()
   async execute(data: CreateUserType): Promise<MessageResponse> {
     this.logger.log(`Attempting to register user with email ${data.email}`);
     const {

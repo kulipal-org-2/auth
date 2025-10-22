@@ -9,17 +9,6 @@ export const MikroOrmOptions: MikroOrmModuleAsyncOptions = {
   imports: [ConfigModule],
   inject: [ConfigService],
   useFactory: (configService: ConfigService) => {
-    console.log({
-      driver: PostgreSqlDriver,
-      dbName: configService.get<string>(envConfig.DATABASE_NAME),
-      user: configService.get<string>(envConfig.DATABASE_USER),
-      password: configService.get<string>(envConfig.DATABASE_PASSWORD),
-      host: configService.get<string>(envConfig.DATABASE_HOST),
-      port: parseInt(
-        configService.get<string>(envConfig.DATABASE_PORT) ?? '5432',
-        10,
-      ),
-    });
     return {
       driver: PostgreSqlDriver,
       dbName: configService.get<string>(envConfig.DATABASE_NAME),

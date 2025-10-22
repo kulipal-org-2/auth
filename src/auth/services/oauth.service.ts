@@ -6,20 +6,11 @@ import { google, people_v1 } from 'googleapis';
 import { default as jwksClient } from 'jwks-rsa';
 import { APPLE_ISSUER, JWKS_URI } from 'src/constants';
 import { CustomLogger as Logger } from 'kulipal-shared';
-import { EntityManager } from '@mikro-orm/postgresql';
+import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
 import { RefreshToken, User } from 'src/database';
 import { createHash, randomBytes } from 'crypto';
-import { LoginResponse } from './login.service';
-import { LoginGoogleRequest } from '../types/auth.type';
-// import { APPLE_ISSUER, JWKS_URI } from 'src/constants';
-// import * as jwtTool from 'jsonwebtoken';
-// import { RpcException } from '@nestjs/microservices';
-// import { LoginSaga } from './sagas/login/login.saga';
-// import { EUserType, Login } from 'src/types/interface';
-// import { UserAdapter } from 'src/outbound/user.adapter';
-// import { JwtTokenAdapter } from 'src/outbound/jwtToken.adapter';
-// import * as dayjs from 'dayjs';
-// import { UserNotificationTokenAdapter } from 'src/outbound/user-notification-token.adapter';
+import { type LoginResponse } from './login.service';
+import { type LoginGoogleRequest } from '../types/auth.type';
 
 const getOauthClient = ({
   client_id,
@@ -33,17 +24,13 @@ const getOauthClient = ({
 
 @Injectable()
 export class OauthService {
-  private oauthClient: OAuth2Client; // Google Oauth Client
-  private jwksClient: any; // Apple Oauth Client
+  private oauthClient: OAuth2Client;
+  private jwksClient: any;
   private readonly logger = new Logger(OauthService.name);
   constructor(
     private configService: ConfigService,
     private jwt: JwtService,
     private readonly em: EntityManager,
-    // private user: UserAdapter,
-    // private jwtToken: JwtTokenAdapter,
-    // private userNofificationToken: UserNotificationTokenAdapter,
-    // private loginSaga: LoginSaga,
   ) {
     this.oauthClient = getOauthClient({
       client_id: this.configService.get<string>('GOOGLE_CLIENT_ID') ?? '',
@@ -75,6 +62,7 @@ export class OauthService {
     }
   }
 
+  @CreateRequestContext()
   async authenticateGoogleUser({
     accessToken,
     refreshToken,
@@ -108,6 +96,7 @@ export class OauthService {
     }
   }
 
+  @CreateRequestContext()
   async authenticateAppleUser(code: string): Promise<LoginResponse> {
     try {
       const data = this.jwt.decode(code, {
