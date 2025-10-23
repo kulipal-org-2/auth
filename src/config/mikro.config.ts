@@ -64,6 +64,11 @@ const config = {
   schema: envService(envConfig.DATABASE_SCHEMA),
   entities: ['./dist/database/entities'],
   entitiesTs: ['./src/database/entities'],
+  driverOptions: {
+    ...(process.env.NODE_ENV === 'production' && {
+      connection: { ssl: { rejectUnauthorized: false } },
+    }),
+  },
   debug: envService('NODE_ENV') !== 'production',
   extensions: [Migrator],
   migrations: {
