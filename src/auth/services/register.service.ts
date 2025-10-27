@@ -1,8 +1,8 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { type CreateUserType } from 'kulipal-shared';
 import { hash } from 'argon2';
-import { UserRepository } from 'src/database/repositories/user.repository';
 import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
+import { User } from 'src/database';
 
 export type MessageResponse = {
   message: string;
@@ -14,7 +14,6 @@ export type MessageResponse = {
 export class RegisterService {
   private readonly logger = new Logger(RegisterService.name);
   constructor(
-    private readonly userRepository: UserRepository,
     private readonly em: EntityManager,
   ) {}
 
@@ -30,7 +29,7 @@ export class RegisterService {
       source,
       agreeToTerms,
     } = data;
-    const existingUser = await this.userRepository.findOne({
+    const existingUser = await this.em.findOne(User,{
       email,
     });
 
@@ -44,7 +43,7 @@ export class RegisterService {
       };
     }
 
-    const user = this.userRepository.create({
+    const user = this.em.create(User, {
       agreeToTerms,
       email,
       firstName,
