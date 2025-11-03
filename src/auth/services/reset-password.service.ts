@@ -1,28 +1,34 @@
 import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
 import { Injectable } from '@nestjs/common';
-import { addMinutes } from 'date-fns';
 import { CustomLogger as Logger } from 'kulipal-shared';
-import { ValidateTokenResponse } from '../types/auth.type';
+import { MessageResponse } from '../types/auth.type';
 import { createHash } from 'crypto';
 import { User, ResetPasswordToken } from 'src/database';
+import { RegisterService } from './register.service';
 
 @Injectable()
-export class ValidateTokenService {
-  private readonly logger = new Logger(ValidateTokenService.name);
+export class ResetPasswordService {
+  private readonly logger = new Logger(ResetPasswordService.name);
 
-  constructor(private readonly em: EntityManager) {}
+  constructor(
+    private readonly em: EntityManager,
+    private readonly registerService: RegisterService,
+  ) {}
 
   @CreateRequestContext()
   async execute({
     token,
     email,
+    newPassword,
   }: {
     token: string;
     email: string;
-  }): Promise<ValidateTokenResponse> {
+    newPassword: string;
+  }): Promise<MessageResponse> {
     this.logger.debug('Validating reset token...');
 
     try {
+      // TODO: method-ify duplicated code from validate-token reused here
       const tokenHash = createHash('sha512').update(token).digest('hex');
       const record = await this.em.findOne(ResetPasswordToken, { tokenHash });
       if (!record) {
@@ -31,7 +37,6 @@ export class ValidateTokenService {
           message: 'Invalid token',
           statusCode: 400,
           success: false,
-          isValid: false,
         };
       }
 
@@ -43,7 +48,6 @@ export class ValidateTokenService {
           message: 'Invalid token',
           statusCode: 400,
           success: false,
-          isValid: false,
         };
       }
 
@@ -53,7 +57,6 @@ export class ValidateTokenService {
           message: 'Invalid token',
           statusCode: 400,
           success: false,
-          isValid: false,
         };
       }
 
@@ -64,23 +67,24 @@ export class ValidateTokenService {
           message: 'Token has expired',
           statusCode: 400,
           success: false,
-          isValid: false,
         };
       }
 
-      // Do not cleanup the record because password reset will still need this record
-      // await this.em.removeAndFlush(record);
-      this.em.assign(record, {
-        expiresAt: addMinutes(new Date(), 15), // Give the user 15 minutes to think about and change his password
+      await this.em.removeAndFlush(record);
+      this.logger.debug('Token successfully validated and deleted');
+
+      const hashedPassword =
+        await this.registerService.hashPassword(newPassword);
+      this.em.assign(user, {
+        password: hashedPassword,
       });
       await this.em.flush();
 
-      this.logger.debug('Token successfully validated');
+      this.logger.debug('Password successfully updated');
       return {
-        message: 'Token is valid',
+        message: 'Password has been reset successfully',
         statusCode: 200,
         success: true,
-        isValid: true,
       };
     } catch (error) {
       this.logger.error('Error validating token');
@@ -89,7 +93,6 @@ export class ValidateTokenService {
         message: 'Internal error while validating token',
         statusCode: 500,
         success: false,
-        isValid: false,
       };
     }
   }

@@ -8,6 +8,7 @@ import {
   type ForgotPasswordRequest,
   type ValidateTokenRequest,
   type ValidateTokenResponse,
+  type MessageResponse as RMessageResponse,
 } from './types/auth.type';
 import { LoginService } from './services/login.service';
 import { RefreshAccessTokenService } from './services/refresh-token.service';
@@ -16,6 +17,7 @@ import { LoginResponse, MessageResponse } from 'kulipal-shared';
 import { OauthService } from './services/oauth.service';
 import { ForgotPasswordService } from './services/forgot-password.service';
 import { ValidateTokenService } from './services/validate-token.service';
+import { ResetPasswordService } from './services/reset-password.service';
 
 @Controller('auth')
 export class AuthController {
@@ -26,6 +28,7 @@ export class AuthController {
     private readonly oauthService: OauthService,
     private readonly forgotPasswordService: ForgotPasswordService,
     private readonly validateTokenService: ValidateTokenService,
+    private readonly resetPasswordService: ResetPasswordService,
   ) {}
 
   @GrpcMethod('AuthService', 'Login')
@@ -64,5 +67,14 @@ export class AuthController {
   @GrpcMethod('AuthService', 'ValidateToken')
   validateToken(data: ValidateTokenRequest): Promise<ValidateTokenResponse> {
     return this.validateTokenService.execute(data);
+  }
+
+  @GrpcMethod('AuthService', 'ResetPassword')
+  resetPassword(data: {
+    token: string;
+    email: string;
+    newPassword: string;
+  }): Promise<RMessageResponse> {
+    return this.resetPasswordService.execute(data);
   }
 }

@@ -13,9 +13,7 @@ export type MessageResponse = {
 @Injectable()
 export class RegisterService {
   private readonly logger = new Logger(RegisterService.name);
-  constructor(
-    private readonly em: EntityManager,
-  ) {}
+  constructor(private readonly em: EntityManager) {}
 
   @CreateRequestContext()
   async execute(data: CreateUserType): Promise<MessageResponse> {
@@ -29,7 +27,7 @@ export class RegisterService {
       source,
       agreeToTerms,
     } = data;
-    const existingUser = await this.em.findOne(User,{
+    const existingUser = await this.em.findOne(User, {
       email,
     });
 
@@ -43,12 +41,14 @@ export class RegisterService {
       };
     }
 
+    const hashedPassword = await this.hashPassword(password);
+
     const user = this.em.create(User, {
       agreeToTerms,
       email,
       firstName,
       lastName,
-      password: await hash(password),
+      password: hashedPassword,
       phoneNumber,
       source,
     });
@@ -64,5 +64,14 @@ export class RegisterService {
       success: true,
       statusCode: HttpStatus.CREATED,
     };
+  }
+
+  /**
+   * Returns the hash of a plain text password
+   * @param pwd The password to hash
+   * @returns The hashed password
+   */
+  public async hashPassword(pwd: string): Promise<string> {
+    return await hash(pwd);
   }
 }

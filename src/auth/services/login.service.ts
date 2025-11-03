@@ -61,7 +61,7 @@ export class LoginService {
 
     if (!existingUser.password) {
       this.logger.warn(
-        `User ${existingUser.id} who signed up via ouath attempted to login with password`,
+        `User ${existingUser.id} who signed up via o-auth attempted to login with password`,
       );
       return {
         message: 'There is no account with this email. Please sign up.',

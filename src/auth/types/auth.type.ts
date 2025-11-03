@@ -36,3 +36,15 @@ export type ValidateTokenResponse = {
   success: boolean;
   isValid: boolean;
 };
+
+export type ResetPasswordRequest = {
+  token: string;
+  email: string;
+  newPassword: string;
+};
+
+export type MessageResponse = {
+  message: string;
+  statusCode: number;
+  success: boolean;
+};

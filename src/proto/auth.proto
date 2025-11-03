@@ -11,6 +11,7 @@ service AuthService {
   rpc LoginApple (LoginAppleDto) returns (LoginResponse) {}
   rpc ForgotPassword (ForgotPasswordDto) returns (MessageResponse) {}
   rpc ValidateToken (ValidateTokenDto) returns (ValidateTokenResponse) {}
+  rpc ResetPassword (ResetPasswordDto) returns (MessageResponse) {}
 }
 
 message LoginDto {
@@ -75,4 +76,10 @@ message ValidateTokenResponse {
   int32 statusCode = 2;
   bool success = 3;
   bool isValid = 4;
+}
+
+message ResetPasswordDto {
+  string token = 1;
+  string email = 2;
+  string newPassword = 3;
 }
