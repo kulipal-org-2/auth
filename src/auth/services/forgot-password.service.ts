@@ -17,7 +17,7 @@ export class ForgotPasswordService {
       token: string,
       expiresAt: Date,
     ) => {
-      await Promise.resolve(null);
+      await Promise.resolve(null); // Placeholder to satisfy asynchronous type check
       console.log(email, token, expiresAt);
     },
   };
@@ -33,9 +33,8 @@ export class ForgotPasswordService {
    */
   @CreateRequestContext()
   async execute({ email }: { email: string }): Promise<MessageResponse> {
+    this.logger.debug(`Forgot password requested for: ${email}`);
     try {
-      this.logger.debug(`Forgot password requested for: ${email}`);
-
       const user = await this.em.findOne(User, { email });
       if (!user) {
         this.logger.warn(`No user found for email: ${email}`);
@@ -138,6 +137,9 @@ export class ForgotPasswordService {
     tokenHash?: string;
     userId?: string;
   }): Promise<number> {
-    return this.em.nativeDelete(ResetPasswordToken, { tokenHash, userId });
+    if (tokenHash) {
+      return this.em.nativeDelete(ResetPasswordToken, { tokenHash });
+    }
+    return this.em.nativeDelete(ResetPasswordToken, { userId });
   }
 }

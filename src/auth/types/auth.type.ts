@@ -24,3 +24,15 @@ export type LoginAppleRequest = {
 export type ForgotPasswordRequest = {
   email: string;
 };
+
+export type ValidateTokenRequest = {
+  token: string;
+  email: string;
+};
+
+export type ValidateTokenResponse = {
+  message: string;
+  statusCode: number;
+  success: boolean;
+  isValid: boolean;
+};

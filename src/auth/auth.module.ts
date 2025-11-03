@@ -7,6 +7,7 @@ import { RegisterService } from './services/register.service';
 import { ForgotPasswordService } from './services/forgot-password.service';
 import { DatabaseModule } from 'src/database/database.module';
 import { JwtModule } from '@nestjs/jwt';
+import { ValidateTokenService } from './services/validate-token.service';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { JwtModule } from '@nestjs/jwt';
     RefreshAccessTokenService,
     RegisterService,
     ForgotPasswordService,
+    ValidateTokenService,
   ],
 })
 export class AuthModule {}
