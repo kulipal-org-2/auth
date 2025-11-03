@@ -20,3 +20,7 @@ export type LoginGoogleRequest = {
 export type LoginAppleRequest = {
   code: string;
 };
+
+export type ForgotPasswordRequest = {
+  email: string;
+};

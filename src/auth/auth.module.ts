@@ -4,6 +4,7 @@ import { LoginService } from './services/login.service';
 import { OauthService } from './services/oauth.service';
 import { RefreshAccessTokenService } from './services/refresh-token.service';
 import { RegisterService } from './services/register.service';
+import { ForgotPasswordService } from './services/forgot-password.service';
 import { DatabaseModule } from 'src/database/database.module';
 import { JwtModule } from '@nestjs/jwt';
 
@@ -20,6 +21,7 @@ import { JwtModule } from '@nestjs/jwt';
     OauthService,
     RefreshAccessTokenService,
     RegisterService,
+    ForgotPasswordService,
   ],
 })
 export class AuthModule {}

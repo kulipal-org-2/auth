@@ -21,6 +21,9 @@ async function bootstrap() {
   app.enableShutdownHooks();
   await app.startAllMicroservices();
 
-  await app.listen(5000);
+  await app.listen(process.env.PORT ?? 5000);
 }
-bootstrap();
+bootstrap().catch((error) => {
+  console.error('Error during application bootstrap:', error);
+  process.exit(1);
+});

@@ -9,6 +9,7 @@ service AuthService {
   rpc Register (RegisterDto) returns (MessageResponse) {}
   rpc LoginGoogle (LoginGoogleDto) returns (LoginResponse) {}
   rpc LoginApple (LoginAppleDto) returns (LoginResponse) {}
+  rpc ForgotPassword (ForgotPasswordDto) returns (MessageResponse) {}
 }
 
 message LoginDto {
@@ -40,7 +41,6 @@ message LoginAppleDto {
   string code = 1;
 }
 
-
 message LoginResponse {
   message Credentials {
     string accessToken = 1;
@@ -58,4 +58,8 @@ message MessageResponse {
   string message = 1;
   int32 statusCode = 2;
   bool success = 3;
+}
+
+message ForgotPasswordDto {
+  string email = 1;
 }

@@ -5,12 +5,14 @@ import {
   type LoginRequest,
   type LoginGoogleRequest,
   type LoginAppleRequest,
+  type ForgotPasswordRequest,
 } from './types/auth.type';
 import { LoginService } from './services/login.service';
 import { RefreshAccessTokenService } from './services/refresh-token.service';
 import { RegisterService } from './services/register.service';
 import { LoginResponse, MessageResponse } from 'kulipal-shared';
 import { OauthService } from './services/oauth.service';
+import { ForgotPasswordService } from './services/forgot-password.service';
 
 @Controller('auth')
 export class AuthController {
@@ -19,6 +21,7 @@ export class AuthController {
     private readonly refreshToken: RefreshAccessTokenService,
     private readonly registerService: RegisterService,
     private readonly oauthService: OauthService,
+    private readonly forgotPasswordService: ForgotPasswordService,
   ) {}
 
   @GrpcMethod('AuthService', 'Login')
@@ -47,5 +50,10 @@ export class AuthController {
   @GrpcMethod('AuthService', 'LoginApple')
   loginApple(data: LoginAppleRequest): Promise<LoginResponse> {
     return this.oauthService.authenticateAppleUser(data.code);
+  }
+
+  @GrpcMethod('AuthService', 'ForgotPassword')
+  forgotPassword(data: ForgotPasswordRequest): Promise<MessageResponse> {
+    return this.forgotPasswordService.execute(data);
   }
 }
