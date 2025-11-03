@@ -9,6 +9,7 @@ import { DatabaseModule } from 'src/database/database.module';
 import { JwtModule } from '@nestjs/jwt';
 import { ValidateTokenService } from './services/validate-token.service';
 import { ResetPasswordService } from './services/reset-password.service';
+import { ChangePasswordService } from './services/change-password.service';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { ResetPasswordService } from './services/reset-password.service';
     ForgotPasswordService,
     ValidateTokenService,
     ResetPasswordService,
+    ChangePasswordService,
   ],
 })
 export class AuthModule {}

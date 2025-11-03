@@ -12,6 +12,7 @@ service AuthService {
   rpc ForgotPassword (ForgotPasswordDto) returns (MessageResponse) {}
   rpc ValidateToken (ValidateTokenDto) returns (ValidateTokenResponse) {}
   rpc ResetPassword (ResetPasswordDto) returns (MessageResponse) {}
+  rpc ChangePassword (ChangePasswordDto) returns (MessageResponse) {}
 }
 
 message LoginDto {
@@ -82,4 +83,9 @@ message ResetPasswordDto {
   string token = 1;
   string email = 2;
   string newPassword = 3;
+}
+
+message ChangePasswordDto {
+  string currentPassword = 1;
+  string newPassword = 2;
 }

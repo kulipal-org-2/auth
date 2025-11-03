@@ -1,5 +1,6 @@
 import { Controller } from '@nestjs/common';
 import { GrpcMethod } from '@nestjs/microservices';
+import type { Metadata } from '@grpc/grpc-js';
 import {
   type RegisterRequest,
   type LoginRequest,
@@ -18,6 +19,7 @@ import { OauthService } from './services/oauth.service';
 import { ForgotPasswordService } from './services/forgot-password.service';
 import { ValidateTokenService } from './services/validate-token.service';
 import { ResetPasswordService } from './services/reset-password.service';
+import { ChangePasswordService } from './services/change-password.service';
 
 @Controller('auth')
 export class AuthController {
@@ -29,6 +31,7 @@ export class AuthController {
     private readonly forgotPasswordService: ForgotPasswordService,
     private readonly validateTokenService: ValidateTokenService,
     private readonly resetPasswordService: ResetPasswordService,
+    private readonly changePasswordService: ChangePasswordService,
   ) {}
 
   @GrpcMethod('AuthService', 'Login')
@@ -76,5 +79,29 @@ export class AuthController {
     newPassword: string;
   }): Promise<RMessageResponse> {
     return this.resetPasswordService.execute(data);
+  }
+
+  @GrpcMethod('AuthService', 'ChangePassword')
+  changePassword(
+    data: {
+      currentPassword: string;
+      newPassword: string;
+    },
+    metadata: Metadata,
+  ): Promise<RMessageResponse> {
+    const authHeader =
+      (metadata?.get?.('authorization')?.[0] as string) ??
+      (metadata?.get?.('Authorization')?.[0] as string) ??
+      '';
+    const bearer = typeof authHeader === 'string' ? authHeader : '';
+    const token = bearer.startsWith('Bearer ') ? bearer.slice(7) : bearer;
+
+    console.log('data:', data);
+
+    return this.changePasswordService.execute({
+      token,
+      currentPassword: data.currentPassword,
+      newPassword: data.newPassword,
+    });
   }
 }

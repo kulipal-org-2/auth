@@ -87,10 +87,9 @@ export class ResetPasswordService {
         success: true,
       };
     } catch (error) {
-      this.logger.error('Error validating token');
-      console.error(error);
+      this.logger.error('Error resetting password', error as any);
       return {
-        message: 'Internal error while validating token',
+        message: 'Internal error while resetting password',
         statusCode: 500,
         success: false,
       };
