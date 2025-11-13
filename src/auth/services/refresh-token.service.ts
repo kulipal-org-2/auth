@@ -2,9 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { CustomLogger as Logger } from 'kulipal-shared';
 import { createHash, randomBytes } from 'crypto';
-import { LoginResponse } from './login.service';
 import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
-import { RefreshToken } from 'src/database';
+import { RefreshToken, User } from 'src/database';
+import type { LoginResponse, RegisteredUser } from '../types/auth.type';
 
 @Injectable()
 export class RefreshAccessTokenService {
@@ -42,8 +42,8 @@ export class RefreshAccessTokenService {
         credentials: {
           accessToken: '',
           refreshToken: '',
-          userId: '',
         },
+        user: null,
       };
     }
 
@@ -77,14 +77,30 @@ export class RefreshAccessTokenService {
     const credentials = {
       accessToken,
       refreshToken: newRawRefreshToken,
-      userId,
     };
+
+    const user = await this.em.findOne(User, { id: userId });
+    let userPayload: RegisteredUser | null = null;
+    if (user) {
+      userPayload = {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        phoneNumber: user.phoneNumber,
+        userType: user.userType,
+        isEmailVerified: Boolean(user.isEmailVerified),
+        isPhoneVerified: Boolean(user.isPhoneVerified),
+        source: user.source ?? undefined,
+      };
+    }
 
     return {
       statusCode: 200,
       success: true,
       message: 'Token refreshed successfully',
       credentials,
+      user: userPayload,
     };
   }
 }

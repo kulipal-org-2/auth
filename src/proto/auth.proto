@@ -53,13 +53,13 @@ message LoginResponse {
   message Credentials {
     string accessToken = 1;
     string refreshToken = 2;
-    string userId = 3;
   }
 
   Credentials credentials = 1;
   string message = 2;
   int32 statusCode = 3;
   bool success = 4;
+  UserDto user = 5;
 }
 
 message MessageResponse {

@@ -5,6 +5,7 @@ import {
   type RegisterRequest,
   type RegisterResponse,
   type LoginRequest,
+  type LoginResponse,
   type LoginGoogleRequest,
   type LoginAppleRequest,
   type ForgotPasswordRequest,
@@ -20,7 +21,7 @@ import {
 import { LoginService } from './services/login.service';
 import { RefreshAccessTokenService } from './services/refresh-token.service';
 import { RegisterService } from './services/register.service';
-import { LoginResponse, MessageResponse } from 'kulipal-shared';
+import { MessageResponse } from 'kulipal-shared';
 import { OauthService } from './services/oauth.service';
 import { ForgotPasswordService } from './services/forgot-password.service';
 import { ValidateTokenService } from './services/validate-token.service';

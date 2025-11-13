@@ -23,6 +23,19 @@ export type RegisteredUser = {
   source?: string;
 };
 
+export type LoginCredentials = {
+  accessToken: string;
+  refreshToken: string;
+};
+
+export type LoginResponse = {
+  message: string;
+  credentials: LoginCredentials;
+  statusCode: number;
+  success: boolean;
+  user: RegisteredUser | null;
+};
+
 export type RegisterResponse = {
   message: string;
   statusCode: number;

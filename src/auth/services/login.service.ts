@@ -7,21 +7,11 @@ import { CustomLogger as Logger } from 'kulipal-shared';
 import { RefreshToken, User } from 'src/database';
 import { RefreshTokenRepository } from 'src/database/repositories/refresh-token.repository';
 import { UserRepository } from 'src/database/repositories/user.repository';
+import type { LoginResponse, RegisteredUser } from '../types/auth.type';
 
 export type LoginType = {
   email: string;
   password: string;
-};
-
-export type LoginResponse = {
-  message: string;
-  credentials: {
-    accessToken: string;
-    refreshToken: string;
-    userId: string;
-  };
-  statusCode: number;
-  success: boolean;
 };
 
 @Injectable()
@@ -37,7 +27,8 @@ export class LoginService {
   async execute(data: LoginType): Promise<LoginResponse> {
     this.logger.log(`Attempting to login user with email ${data.email}`);
 
-    const { email, password } = data;
+    const email = data.email.trim().toLowerCase();
+    const { password } = data;
     const existingUser = await this.em.findOne(User, {
       email,
     });
@@ -52,8 +43,8 @@ export class LoginService {
         credentials: {
           accessToken: '',
           refreshToken: '',
-          userId: '',
         },
+        user: null,
       };
     }
 
@@ -70,8 +61,8 @@ export class LoginService {
         credentials: {
           accessToken: '',
           refreshToken: '',
-          userId: '',
         },
+        user: null,
       };
     }
 
@@ -84,8 +75,8 @@ export class LoginService {
         credentials: {
           accessToken: '',
           refreshToken: '',
-          userId: '',
         },
+        user: null,
       };
     }
 
@@ -94,12 +85,24 @@ export class LoginService {
     );
 
     const credentials = await this.generateCredentials(existingUser.id);
+    const userPayload: RegisteredUser = {
+      id: existingUser.id,
+      firstName: existingUser.firstName,
+      lastName: existingUser.lastName,
+      email: existingUser.email,
+      phoneNumber: existingUser.phoneNumber,
+      userType: existingUser.userType,
+      isEmailVerified: Boolean(existingUser.isEmailVerified),
+      isPhoneVerified: Boolean(existingUser.isPhoneVerified),
+      source: existingUser.source ?? undefined,
+    };
 
     return {
       message: 'Login successful',
       credentials,
       statusCode: 200,
       success: true,
+      user: userPayload,
     };
   }
 
@@ -125,6 +128,6 @@ export class LoginService {
         throw new Error('Internal server error. Please try again later.');
       });
 
-    return { accessToken, refreshToken, userId };
+    return { accessToken, refreshToken };
   }
 }

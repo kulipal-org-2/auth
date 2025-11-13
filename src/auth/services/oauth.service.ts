@@ -9,7 +9,7 @@ import { CustomLogger as Logger } from 'kulipal-shared';
 import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
 import { RefreshToken, User } from 'src/database';
 import { createHash, randomBytes } from 'crypto';
-import { type LoginResponse } from './login.service';
+import type { LoginResponse, RegisteredUser } from '../types/auth.type';
 import { type LoginGoogleRequest } from '../types/auth.type';
 
 const getOauthClient = ({
@@ -90,8 +90,8 @@ export class OauthService {
         credentials: {
           accessToken: '',
           refreshToken: '',
-          userId: '',
         },
+        user: null,
       };
     }
   }
@@ -136,8 +136,8 @@ export class OauthService {
         credentials: {
           accessToken: '',
           refreshToken: '',
-          userId: '',
         },
+        user: null,
       };
     }
   }
@@ -157,18 +157,30 @@ export class OauthService {
         credentials: {
           accessToken: '',
           refreshToken: '',
-          userId: '',
         },
+        user: null,
       };
     }
 
     const credentials = await this.generateCredentials(existingUser.id);
+    const userPayload: RegisteredUser = {
+      id: existingUser.id,
+      firstName: existingUser.firstName,
+      lastName: existingUser.lastName,
+      email: existingUser.email,
+      phoneNumber: existingUser.phoneNumber,
+      userType: existingUser.userType,
+      isEmailVerified: Boolean(existingUser.isEmailVerified),
+      isPhoneVerified: Boolean(existingUser.isPhoneVerified),
+      source: existingUser.source ?? undefined,
+    };
 
     return {
       message: 'Login successful',
       credentials,
       statusCode: 200,
       success: true,
+      user: userPayload,
     };
   }
 
@@ -190,6 +202,6 @@ export class OauthService {
         throw new Error('Internal server error. Please try again later.');
       });
 
-    return { accessToken, refreshToken, userId };
+    return { accessToken, refreshToken };
   }
 }
