@@ -18,6 +18,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
+    "migration:create": "mikro-orm migration:create --config src/config/mikro.config.ts",
     "migration:dev": "pnpm mikro-orm migration:up --config src/config/mikro.config.ts",
     "migration": "pnpm mikro-orm migration:up --config dist/config/mikro.config.js"
   },
@@ -42,6 +43,7 @@
     "googleapis": "^160.0.0",
     "jwks-rsa": "^3.2.0",
     "kulipal-shared": "^1.2.4",
+    "otp-generator": "^4.0.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
   },
