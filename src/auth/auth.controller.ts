@@ -3,23 +3,32 @@ import { GrpcMethod } from '@nestjs/microservices';
 import type { Metadata } from '@grpc/grpc-js';
 import {
   type RegisterRequest,
+  type RegisterResponse,
   type LoginRequest,
+  type LoginResponse,
   type LoginGoogleRequest,
   type LoginAppleRequest,
   type ForgotPasswordRequest,
   type ValidateTokenRequest,
   type ValidateTokenResponse,
+  type SendEmailOtpRequest,
+  type SendSmsOtpRequest,
+  type ValidateEmailOtpRequest,
+  type ValidateOtpResponse,
+  type ValidateSmsOtpRequest,
   type MessageResponse as RMessageResponse,
 } from './types/auth.type';
 import { LoginService } from './services/login.service';
 import { RefreshAccessTokenService } from './services/refresh-token.service';
 import { RegisterService } from './services/register.service';
-import { LoginResponse, MessageResponse } from 'kulipal-shared';
+import { MessageResponse } from 'kulipal-shared';
 import { OauthService } from './services/oauth.service';
 import { ForgotPasswordService } from './services/forgot-password.service';
 import { ValidateTokenService } from './services/validate-token.service';
 import { ResetPasswordService } from './services/reset-password.service';
 import { ChangePasswordService } from './services/change-password.service';
+import { RequestOtpService } from './services/request-otp.service';
+import { ValidateOtpService } from './services/validate-otp.service';
 
 @Controller('auth')
 export class AuthController {
@@ -32,6 +41,8 @@ export class AuthController {
     private readonly validateTokenService: ValidateTokenService,
     private readonly resetPasswordService: ResetPasswordService,
     private readonly changePasswordService: ChangePasswordService,
+    private readonly requestOtpService: RequestOtpService,
+    private readonly validateOtpService: ValidateOtpService,
   ) {}
 
   @GrpcMethod('AuthService', 'Login')
@@ -48,7 +59,7 @@ export class AuthController {
   }
 
   @GrpcMethod('AuthService', 'Register')
-  register(data: RegisterRequest): Promise<MessageResponse> {
+  register(data: RegisterRequest): Promise<RegisterResponse> {
     return this.registerService.execute(data);
   }
 
@@ -103,5 +114,27 @@ export class AuthController {
       currentPassword: data.currentPassword,
       newPassword: data.newPassword,
     });
+  }
+
+  @GrpcMethod('AuthService', 'SendEmailOtp')
+  sendEmailOtp(data: SendEmailOtpRequest): Promise<MessageResponse> {
+    return this.requestOtpService.sendEmailOtp(data);
+  }
+
+  @GrpcMethod('AuthService', 'SendSmsOtp')
+  sendSmsOtp(data: SendSmsOtpRequest): Promise<MessageResponse> {
+    return this.requestOtpService.sendSmsOtp(data);
+  }
+
+  @GrpcMethod('AuthService', 'ValidateEmailOtp')
+  validateEmailOtp(
+    data: ValidateEmailOtpRequest,
+  ): Promise<ValidateOtpResponse> {
+    return this.validateOtpService.validateEmailOtp(data);
+  }
+
+  @GrpcMethod('AuthService', 'ValidateSmsOtp')
+  validateSmsOtp(data: ValidateSmsOtpRequest): Promise<ValidateOtpResponse> {
+    return this.validateOtpService.validateSmsOtp(data);
   }
 }

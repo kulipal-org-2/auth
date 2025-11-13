@@ -1,14 +1,15 @@
-import { HttpStatus, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpStatus,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
 import { type CreateUserType } from 'kulipal-shared';
 import { hash } from 'argon2';
 import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
 import { User } from 'src/database';
-
-export type MessageResponse = {
-  message: string;
-  success: boolean;
-  statusCode: number;
-};
+import type { UserType } from 'src/database/entities/user.entity';
+import type { RegisterResponse } from '../types/auth.type';
 
 @Injectable()
 export class RegisterService {
@@ -16,7 +17,9 @@ export class RegisterService {
   constructor(private readonly em: EntityManager) {}
 
   @CreateRequestContext()
-  async execute(data: CreateUserType): Promise<MessageResponse> {
+  async execute(
+    data: CreateUserType & { userType: UserType },
+  ): Promise<RegisterResponse> {
     this.logger.log(`Attempting to register user with email ${data.email}`);
     const {
       email,
@@ -26,18 +29,50 @@ export class RegisterService {
       phoneNumber,
       source,
       agreeToTerms,
+      userType,
     } = data;
+
+    if (!phoneNumber?.trim()) {
+      throw new BadRequestException(
+        'Phone number is required for registration',
+      );
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedPhoneNumber = phoneNumber.trim();
+
     const existingUser = await this.em.findOne(User, {
-      email,
+      email: normalizedEmail,
     });
 
     if (existingUser) {
-      this.logger.warn(`User with email ${email} found to already exist.`);
+      this.logger.warn(
+        `User with email ${normalizedEmail} found to already exist.`,
+      );
 
       return {
         message: 'There is an existing account with this email. Please login',
         success: false,
         statusCode: HttpStatus.CONFLICT,
+        user: null,
+      };
+    }
+
+    const existingPhoneUser = await this.em.findOne(User, {
+      phoneNumber: normalizedPhoneNumber,
+    });
+
+    if (existingPhoneUser) {
+      this.logger.warn(
+        `User with phone number ${normalizedPhoneNumber} found to already exist.`,
+      );
+
+      return {
+        message:
+          'There is an existing account with this phone number. Please login',
+        success: false,
+        statusCode: HttpStatus.CONFLICT,
+        user: null,
       };
     }
 
@@ -45,24 +80,36 @@ export class RegisterService {
 
     const user = this.em.create(User, {
       agreeToTerms,
-      email,
+      email: normalizedEmail,
       firstName,
       lastName,
       password: hashedPassword,
-      phoneNumber,
+      phoneNumber: normalizedPhoneNumber,
       source,
+      userType,
     });
 
     await this.em.persistAndFlush(user);
 
     this.logger.log(
-      `Successfully created user with email ${email} and id ${user.id}`,
+      `Successfully created user with email ${normalizedEmail} and id ${user.id}`,
     );
 
     return {
       message: 'User created successfully',
       success: true,
       statusCode: HttpStatus.CREATED,
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        phoneNumber: user.phoneNumber,
+        userType: user.userType,
+        isEmailVerified: Boolean(user.isEmailVerified),
+        isPhoneVerified: Boolean(user.isPhoneVerified),
+        source: user.source ?? undefined,
+      },
     };
   }
 
