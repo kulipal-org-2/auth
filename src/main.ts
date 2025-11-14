@@ -12,7 +12,7 @@ async function bootstrap() {
     options: {
       package: 'auth',
       protoPath: [join(__dirname, 'proto/auth.proto')],
-      url: process.env.URL,
+      url: process.env.URL || 'localhost:6000',
     },
   });
 
@@ -21,7 +21,7 @@ async function bootstrap() {
   app.enableShutdownHooks();
   await app.startAllMicroservices();
 
-  await app.listen(process.env.PORT ?? 5000);
+  await app.listen(process.env.APP_PORT ?? 5000);
 }
 bootstrap().catch((error) => {
   console.error('Error during application bootstrap:', error);
