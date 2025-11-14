@@ -6,13 +6,17 @@ package auth;
 service AuthService {
   rpc Login (LoginDto) returns (LoginResponse) {}
   rpc RefreshToken (RefreshTokenDto) returns (LoginResponse) {}
-  rpc Register (RegisterDto) returns (MessageResponse) {}
+  rpc Register (RegisterDto) returns (RegisterResponse) {}
   rpc LoginGoogle (LoginGoogleDto) returns (LoginResponse) {}
   rpc LoginApple (LoginAppleDto) returns (LoginResponse) {}
   rpc ForgotPassword (ForgotPasswordDto) returns (MessageResponse) {}
   rpc ValidateToken (ValidateTokenDto) returns (ValidateTokenResponse) {}
   rpc ResetPassword (ResetPasswordDto) returns (MessageResponse) {}
   rpc ChangePassword (ChangePasswordDto) returns (MessageResponse) {}
+  rpc SendEmailOtp (SendEmailOtpDto) returns (MessageResponse) {}
+  rpc SendSmsOtp (SendSmsOtpDto) returns (MessageResponse) {}
+  rpc ValidateEmailOtp (ValidateEmailOtpDto) returns (ValidateOtpResponse) {}
+  rpc ValidateSmsOtp (ValidateSmsOtpDto) returns (ValidateOtpResponse) {}
 }
 
 message LoginDto {
@@ -33,6 +37,7 @@ message RegisterDto {
   bool agreeToTerms = 5;
   string phoneNumber = 6;
   string source = 7;
+  string userType = 8;
 }
 
 message LoginGoogleDto {
@@ -48,19 +53,38 @@ message LoginResponse {
   message Credentials {
     string accessToken = 1;
     string refreshToken = 2;
-    string userId = 3;
   }
 
   Credentials credentials = 1;
   string message = 2;
   int32 statusCode = 3;
   bool success = 4;
+  UserDto user = 5;
 }
 
 message MessageResponse {
   string message = 1;
   int32 statusCode = 2;
   bool success = 3;
+}
+
+message UserDto {
+  string id = 1;
+  string firstName = 2;
+  string lastName = 3;
+  string email = 4;
+  string phoneNumber = 5;
+  string userType = 6;
+  bool isEmailVerified = 7;
+  bool isPhoneVerified = 8;
+  string source = 9;
+}
+
+message RegisterResponse {
+  string message = 1;
+  int32 statusCode = 2;
+  bool success = 3;
+  UserDto user = 4;
 }
 
 message ForgotPasswordDto {
@@ -88,4 +112,32 @@ message ResetPasswordDto {
 message ChangePasswordDto {
   string currentPassword = 1;
   string newPassword = 2;
+}
+
+message SendEmailOtpDto {
+  string email = 1;
+}
+
+message SendSmsOtpDto {
+  string phoneNumber = 1;
+}
+
+message ValidateEmailOtpDto {
+  string email = 1;
+  string token = 2;
+}
+
+message ValidateSmsOtpDto {
+  string phoneNumber = 1;
+  string token = 2;
+}
+
+message ValidateOtpResponse {
+  string message = 1;
+  int32 statusCode = 2;
+  bool success = 3;
+  bool isValid = 4;
+  string accessToken = 5;
+  string userId = 6;
+  string userType = 7;
 }

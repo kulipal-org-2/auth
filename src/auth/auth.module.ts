@@ -10,6 +10,11 @@ import { JwtModule } from '@nestjs/jwt';
 import { ValidateTokenService } from './services/validate-token.service';
 import { ResetPasswordService } from './services/reset-password.service';
 import { ChangePasswordService } from './services/change-password.service';
+import { RequestOtpService } from './services/request-otp.service';
+import { ValidateOtpService } from './services/validate-otp.service';
+import { NotificationService } from './services/notification.service';
+import { ClientsModule, Transport } from '@nestjs/microservices';
+import { join } from 'path';
 
 @Module({
   imports: [
@@ -17,6 +22,17 @@ import { ChangePasswordService } from './services/change-password.service';
     JwtModule.register({
       secret: process.env.JWT_SECRET,
     }),
+    ClientsModule.register([
+      {
+        name: 'NOTIFICATION_PACKAGE',
+        transport: Transport.GRPC,
+        options: {
+          package: 'notification',
+          protoPath: join(__dirname, '..', 'proto/notification.proto'),
+          url: process.env.NOTIFICATION_GRPC_URL,
+        },
+      },
+    ]),
   ],
   controllers: [AuthController],
   providers: [
@@ -28,6 +44,9 @@ import { ChangePasswordService } from './services/change-password.service';
     ValidateTokenService,
     ResetPasswordService,
     ChangePasswordService,
+    RequestOtpService,
+    ValidateOtpService,
+    NotificationService,
   ],
 })
 export class AuthModule {}
