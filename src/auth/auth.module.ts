@@ -29,7 +29,7 @@ import { join } from 'path';
         options: {
           package: 'notification',
           protoPath: join(__dirname, '..', 'proto/notification.proto'),
-          url: process.env.NOTIFICATION_GRPC_URL ?? 'localhost:6001',
+          url: process.env.NOTIFICATION_GRPC_URL,
         },
       },
     ]),
