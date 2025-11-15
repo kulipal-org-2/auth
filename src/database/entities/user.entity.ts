@@ -38,6 +38,6 @@ export class User extends CustomBaseEntity {
   @Property({ nullable: true })
   isPhoneVerified?: boolean = false;
 
-  @Property()
-  userType!: UserType;
+  @Property({ nullable: true })
+  userType?: UserType;
 }
