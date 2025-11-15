@@ -17,8 +17,8 @@ async function bootstrap() {
   });
 
   app.useGlobalFilters(new ExceptionsFilter());
-
   app.enableShutdownHooks();
+
   await app.startAllMicroservices();
 
   await app.listen(process.env.APP_PORT ?? 5000);
