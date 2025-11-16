@@ -133,7 +133,7 @@ export class ValidateOtpService {
       isValid: true,
       accessToken,
       userId: isFullyVerified ? user.id : null,
-      userType: isFullyVerified ? user.userType ?? null : null,
+      userType: isFullyVerified ? user.userType : null,
     };
   }
 }

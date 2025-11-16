@@ -2,7 +2,7 @@ import { CustomBaseEntity } from './base.entity';
 import { UserRepository } from '../repositories/user.repository';
 import { Entity, EntityRepositoryType, Property } from '@mikro-orm/postgresql';
 
-export type UserType = 'customer' | 'vendor';
+export type UserType = 'user' | 'vendor';
 
 @Entity({ repository: () => UserRepository })
 export class User extends CustomBaseEntity {
@@ -38,6 +38,6 @@ export class User extends CustomBaseEntity {
   @Property({ nullable: true })
   isPhoneVerified?: boolean = false;
 
-  @Property({ nullable: true })
-  userType?: UserType;
+  @Property()
+  userType!: UserType;
 }
