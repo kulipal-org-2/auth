@@ -17,7 +17,7 @@ export type RegisteredUser = {
   lastName: string;
   email: string;
   phoneNumber: string;
-  userType: UserType;
+  userType?: UserType;
   isEmailVerified: boolean;
   isPhoneVerified: boolean;
   source?: string;
