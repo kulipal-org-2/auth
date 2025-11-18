@@ -1,4 +1,5 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { CustomLogger as Logger } from 'kulipal-shared';
 import { createHash, randomBytes } from 'crypto';
@@ -16,6 +17,7 @@ export class ForgotPasswordService {
     private readonly em: EntityManager,
     private readonly jwtService: JwtService,
     private readonly notificationService: NotificationService,
+    private readonly configService: ConfigService,
   ) {}
 
   @CreateRequestContext()
@@ -35,7 +37,7 @@ export class ForgotPasswordService {
 
       const { rawToken, expiresAt } = await this.generateResetToken(user.id);
 
-      const frontendUrl = process.env.FRONTEND_URL;
+      const frontendUrl = this.configService.get<string>('FRONTEND_URL');
       const resetLink = `${frontendUrl}/reset-password?token=${rawToken}&email=${encodeURIComponent(user.email)}`;
 
       const expiryMinutes = 15;

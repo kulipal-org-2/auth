@@ -1,6 +1,7 @@
 import { Migration } from '@mikro-orm/migrations';
 
 export class Migration20251113164235 extends Migration {
+  
   override async up(): Promise<void> {
     this.addSql(
       `create table "auth"."otp" ("id" varchar(255) not null default gen_random_uuid(), "created_at" timestamptz not null default now(), "updated_at" timestamptz not null default now(), "identifier" varchar(255) not null, "token" varchar(255) not null, "token_ttl" timestamptz not null, constraint "otp_pkey" primary key ("id"));`,
