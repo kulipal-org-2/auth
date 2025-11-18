@@ -68,8 +68,6 @@ export class ValidateTokenService {
         };
       }
 
-      // Do not cleanup the record because password reset will still need this record
-      // await this.em.removeAndFlush(record);
       this.em.assign(record, {
         expiresAt: addMinutes(new Date(), 15), // Give the user 15 minutes to think about and change his password
       });

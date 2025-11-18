@@ -12,8 +12,17 @@ export class Migration20251113164235 extends Migration {
   }
 
   override async down(): Promise<void> {
-    this.addSql(`alter table "auth"."user" alter column "phone_number" type varchar(255) using ("phone_number"::varchar(255));`);
-    this.addSql(`alter table "auth"."user" alter column "phone_number" drop not null;`);
+    this.addSql(
+      `alter table "auth"."user" alter column "phone_number" drop not null;`,
+    );
+    this.addSql(
+      `alter table "auth"."user" alter column "phone_number" type varchar(255) using ("phone_number"::varchar(255));`,
+    );
+    this.addSql(
+      `alter table "auth"."user" drop column "is_phone_verified", drop column "user_type";`,
+    );
+    this.addSql(`drop index if exists "auth"."otp_identifier_token_index";`);
+    this.addSql(`drop table if exists "auth"."otp";`);
   }
 
 }
