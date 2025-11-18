@@ -24,7 +24,6 @@ export class RefreshAccessTokenService {
     refreshToken: string;
   }): Promise<LoginResponse> {
     const hashed = createHash('sha512').update(refreshToken).digest('hex');
-    console.log(hashed);
 
     const token = await this.em.findOne(RefreshToken, {
       userId,

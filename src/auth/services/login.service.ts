@@ -5,8 +5,6 @@ import { verify } from 'argon2';
 import { createHash, randomBytes } from 'crypto';
 import { CustomLogger as Logger } from 'kulipal-shared';
 import { RefreshToken, User } from 'src/database';
-import { RefreshTokenRepository } from 'src/database/repositories/refresh-token.repository';
-import { UserRepository } from 'src/database/repositories/user.repository';
 import type { LoginResponse, RegisteredUser } from '../types/auth.type';
 
 export type LoginType = {

@@ -43,10 +43,8 @@ export class NotificationService implements OnModuleInit {
 
     try {
       if (channel === 'email') {
-        const username =
-          [user.firstName, user.lastName].filter(Boolean).join(' ') ||
-          user.email;
-        console.log('auth service: dispatching email notification');
+        const username = user.getFullName();
+
         await lastValueFrom(
           this.notificationClient.Email({
             template: 'signup-otp',
@@ -70,13 +68,50 @@ export class NotificationService implements OnModuleInit {
         this.notificationClient.Sms({
           phoneNumber: user.phoneNumber,
           message: smsMessage,
-          channel: 'dnd',
+          channel: 'generic',
         }),
       );
       this.logger.log(`OTP SMS dispatched to ${user.phoneNumber}`);
     } catch (error: any) {
       this.logger.error(
         `Failed to dispatch OTP via ${channel} for user ${user.id}: ${error?.message ?? error}`,
+      );
+    }
+  }
+
+  async sendPasswordResetEmail({
+    user,
+    resetLink,
+    expiryMinutes,
+  }: {
+    user: User;
+    resetLink: string;
+    expiryMinutes: number;
+  }): Promise<void> {
+    if (!this.notificationClient) {
+      this.logger.warn('Notification service client is not available');
+      return;
+    }
+
+    try {
+      const username = user.getFullName();
+
+      await lastValueFrom(
+        this.notificationClient.Email({
+          template: 'password-reset-request',
+          subject: 'Kulipal Password Reset Request',
+          email: user.email,
+          data: {
+            username,
+            link: resetLink,
+            validityMinutes: expiryMinutes.toString(),
+          },
+        }),
+      );
+      this.logger.log(`Password reset email dispatched to ${user.email}`);
+    } catch (error: any) {
+      this.logger.error(
+        `Failed to dispatch password reset email for user ${user.id}: ${error?.message ?? error}`,
       );
     }
   }
