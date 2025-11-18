@@ -1,4 +1,5 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { CustomLogger as Logger } from 'kulipal-shared';
 import { createHash, randomBytes } from 'crypto';
@@ -6,31 +7,19 @@ import { MessageResponse } from 'kulipal-shared';
 import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
 import { User, ResetPasswordToken } from 'src/database';
 import { addMinutes } from 'date-fns';
+import { NotificationService } from './notification.service';
 
 @Injectable()
 export class ForgotPasswordService {
   private readonly logger = new Logger(ForgotPasswordService.name);
-  // Placeholder for mail service
-  mailService = {
-    sendPasswordResetEmail: async (
-      email: string,
-      token: string,
-      expiresAt: Date,
-    ) => {
-      await Promise.resolve(null); // Placeholder to satisfy asynchronous type check
-      console.log(email, token, expiresAt);
-    },
-  };
 
   constructor(
     private readonly em: EntityManager,
     private readonly jwtService: JwtService,
+    private readonly notificationService: NotificationService,
+    private readonly configService: ConfigService,
   ) {}
 
-  /**
-   * Initiates the forgot password process.
-   * Returns more detailed info for debugging, but controller should sanitize response to prevent user enumeration.
-   */
   @CreateRequestContext()
   async execute({ email }: { email: string }): Promise<MessageResponse> {
     this.logger.debug(`Forgot password requested for: ${email}`);
@@ -38,31 +27,30 @@ export class ForgotPasswordService {
       const user = await this.em.findOne(User, { email });
       if (!user) {
         this.logger.warn(`No user found for email: ${email}`);
-        // Detailed error for debugging purposes
         return {
           message: `No user found for email: ${email}`,
-          // success: false,
         };
       }
 
       await this.cleanUpExpiredTokens();
       await this.invalidateToken({ userId: user.id });
 
-      // Generate a random token
       const { rawToken, expiresAt } = await this.generateResetToken(user.id);
 
-      await this.mailService.sendPasswordResetEmail(
-        user.email,
-        rawToken,
-        expiresAt,
-      );
+      const frontendUrl = this.configService.get<string>('FRONTEND_URL');
+      const resetLink = `${frontendUrl}/reset-password?token=${rawToken}&email=${encodeURIComponent(user.email)}`;
+
+      const expiryMinutes = 15;
+
+      await this.notificationService.sendPasswordResetEmail({
+        user,
+        resetLink,
+        expiryMinutes,
+      });
 
       this.logger.debug(
         `Password reset email sent to user ID: ${user.id} at email: ${user.email}`,
       );
-      // For demonstration, log the reset link (in production, email it)
-      const resetLink = `https://${process.env.URL}/reset-password?token=${rawToken}&userId=${user.id}`;
-      this.logger.debug(`Password reset link (dev only): ${resetLink}`);
 
       return {
         message: 'Password reset link sent successfully',

@@ -40,4 +40,8 @@ export class User extends CustomBaseEntity {
 
   @Property()
   userType!: UserType;
+
+  getFullName(): string {
+    return `${this.firstName} ${this.lastName}`;
+  }
 }
