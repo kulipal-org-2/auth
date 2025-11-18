@@ -17,10 +17,15 @@ export type RegisteredUser = {
   lastName: string;
   email: string;
   phoneNumber: string;
-  userType?: UserType;
+  userType: UserType;
   isEmailVerified: boolean;
   isPhoneVerified: boolean;
   source?: string;
+};
+
+export type RefreshTokenRequest = {
+  userId: string;
+  refreshToken: string;
 };
 
 export type LoginCredentials = {
@@ -59,6 +64,11 @@ export type LoginAppleRequest = {
 
 export type ForgotPasswordRequest = {
   email: string;
+};
+
+export type ChangePasswordRequest = {
+  currentPassword: string;
+  newPassword: string;
 };
 
 export type ValidateTokenRequest = {
