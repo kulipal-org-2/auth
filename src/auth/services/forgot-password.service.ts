@@ -1,9 +1,11 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
 import { CustomLogger as Logger } from 'kulipal-shared';
 import { createHash, randomBytes } from 'crypto';
-import { MessageResponse } from 'kulipal-shared';
+import {
+  type ForgotPasswordRequest,
+  MessageResponse,
+} from '../types/auth.type';
 import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
 import { User, ResetPasswordToken } from 'src/database';
 import { addMinutes } from 'date-fns';
@@ -15,20 +17,22 @@ export class ForgotPasswordService {
 
   constructor(
     private readonly em: EntityManager,
-    private readonly jwtService: JwtService,
     private readonly notificationService: NotificationService,
     private readonly configService: ConfigService,
   ) {}
 
   @CreateRequestContext()
-  async execute({ email }: { email: string }): Promise<MessageResponse> {
+  async execute(data: ForgotPasswordRequest): Promise<MessageResponse> {
+    const { email } = data;
     this.logger.debug(`Forgot password requested for: ${email}`);
     try {
       const user = await this.em.findOne(User, { email });
       if (!user) {
-        this.logger.warn(`No user found for email: ${email}`);
+        this.logger.warn(`User with email ${email} does not exist`);
         return {
-          message: `No user found for email: ${email}`,
+          message: 'User not found for provided email',
+          statusCode: HttpStatus.NOT_FOUND,
+          success: false,
         };
       }
 
@@ -54,20 +58,19 @@ export class ForgotPasswordService {
 
       return {
         message: 'Password reset link sent successfully',
-        // success: true,
+        statusCode: HttpStatus.OK,
+        success: true,
       };
     } catch (error) {
       this.logger.error(
         'Error generating password reset token for email:',
         email,
       );
-
-      // For debugging, throw or return details
-      throw new InternalServerErrorException({
+      return {
         message: 'Internal error while generating password reset link',
-        error: error,
-        stack: error,
-      });
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        success: false,
+      };
     }
   }
 

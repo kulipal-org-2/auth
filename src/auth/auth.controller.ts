@@ -19,6 +19,7 @@ import {
   type MessageResponse as RMessageResponse,
   type RefreshTokenRequest,
   type ChangePasswordRequest,
+  type ResetPasswordRequest,
 } from './types/auth.type';
 import { LoginService } from './services/login.service';
 import { RefreshAccessTokenService } from './services/refresh-token.service';
@@ -83,11 +84,7 @@ export class AuthController {
   }
 
   @GrpcMethod('AuthService', 'ResetPassword')
-  resetPassword(data: {
-    token: string;
-    email: string;
-    newPassword: string;
-  }): Promise<RMessageResponse> {
+  resetPassword(data: ResetPasswordRequest): Promise<RMessageResponse> {
     return this.resetPasswordService.execute(data);
   }
 
@@ -103,11 +100,7 @@ export class AuthController {
     const bearer = typeof authHeader === 'string' ? authHeader : '';
     const token = bearer.startsWith('Bearer ') ? bearer.slice(7) : bearer;
 
-    return this.changePasswordService.execute({
-      token,
-      currentPassword: data.currentPassword,
-      newPassword: data.newPassword,
-    });
+    return this.changePasswordService.execute(data, token);
   }
 
   @GrpcMethod('AuthService', 'SendEmailOtp')

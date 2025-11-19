@@ -1,19 +1,16 @@
 import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
-import {
-  BadRequestException,
-  HttpStatus,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { Otp } from 'src/database/entities/otp.entity';
 import { User } from 'src/database';
 import type {
   ValidateEmailOtpRequest,
   ValidateOtpResponse,
   ValidateSmsOtpRequest,
+  RegisteredUser,
+  LoginCredentials,
 } from '../types/auth.type';
+import { OtpChannel } from '../enums/otp.enum';
+import { LoginService } from './login.service';
 
 @Injectable()
 export class ValidateOtpService {
@@ -21,7 +18,7 @@ export class ValidateOtpService {
 
   constructor(
     private readonly em: EntityManager,
-    private readonly jwtService: JwtService,
+    private readonly loginService: LoginService,
   ) {}
 
   @CreateRequestContext()
@@ -30,11 +27,18 @@ export class ValidateOtpService {
   ): Promise<ValidateOtpResponse> {
     const user = await this.em.findOne(User, { email: data.email });
     if (!user) {
-      throw new NotFoundException('User not found for provided email');
+      this.logger.warn(`User with email ${data.email} does not exist`);
+      return {
+        message: 'User not found for provided email',
+        statusCode: HttpStatus.NOT_FOUND,
+        success: false,
+        isValid: false,
+        user: null,
+      };
     }
 
     return this.validateOtp({
-      channel: 'email',
+      otpChannel: OtpChannel.EMAIL,
       identifier: data.email,
       token: data.token,
       user,
@@ -47,11 +51,20 @@ export class ValidateOtpService {
   ): Promise<ValidateOtpResponse> {
     const user = await this.em.findOne(User, { phoneNumber: data.phoneNumber });
     if (!user) {
-      throw new NotFoundException('User not found for provided phone number');
+      this.logger.warn(
+        `User with phone number ${data.phoneNumber} does not exist`,
+      );
+      return {
+        message: 'User not found for provided phone number',
+        statusCode: HttpStatus.NOT_FOUND,
+        success: false,
+        isValid: false,
+        user: null,
+      };
     }
 
     return this.validateOtp({
-      channel: 'sms',
+      otpChannel: OtpChannel.SMS,
       identifier: data.phoneNumber,
       token: data.token,
       user,
@@ -59,12 +72,12 @@ export class ValidateOtpService {
   }
 
   private async validateOtp({
-    channel,
+    otpChannel,
     identifier,
     token,
     user,
   }: {
-    channel: 'email' | 'sms';
+    otpChannel: OtpChannel;
     identifier: string;
     token: string;
     user: User;
@@ -82,9 +95,7 @@ export class ValidateOtpService {
         statusCode: HttpStatus.BAD_REQUEST,
         success: false,
         isValid: false,
-        accessToken: null,
-        userId: null,
-        userType: null,
+        user: null,
       };
     }
 
@@ -97,15 +108,13 @@ export class ValidateOtpService {
         statusCode: HttpStatus.BAD_REQUEST,
         success: false,
         isValid: false,
-        accessToken: null,
-        userId: null,
-        userType: null,
+        user: null,
       };
     }
 
     await otpRepository.nativeDelete({ identifier, token });
 
-    if (channel === 'email') {
+    if (otpChannel === OtpChannel.EMAIL) {
       user.isEmailVerified = true;
     } else {
       user.isPhoneVerified = true;
@@ -117,11 +126,21 @@ export class ValidateOtpService {
     const isPhoneVerified = Boolean(user.isPhoneVerified);
     const isFullyVerified = isEmailVerified && isPhoneVerified;
 
-    const accessToken = isFullyVerified
-      ? this.jwtService.sign({
-          userId: user.id,
+    const credentials: LoginCredentials | undefined = isFullyVerified
+      ? await this.loginService.generateCredentials(user.id)
+      : undefined;
+    const userPayload: RegisteredUser | null = isFullyVerified
+      ? {
+          id: user.id,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          phoneNumber: user.phoneNumber,
           userType: user.userType,
-        })
+          isEmailVerified,
+          isPhoneVerified,
+          source: user.source ?? undefined,
+        }
       : null;
 
     this.logger.debug(`Successful OTP validation for identifier ${identifier}`);
@@ -131,9 +150,8 @@ export class ValidateOtpService {
       statusCode: HttpStatus.OK,
       success: true,
       isValid: true,
-      accessToken,
-      userId: isFullyVerified ? user.id : null,
-      userType: isFullyVerified ? user.userType : null,
+      credentials,
+      user: userPayload,
     };
   }
 }
