@@ -32,7 +32,7 @@ import { ResetPasswordService } from './services/reset-password.service';
 import { ChangePasswordService } from './services/change-password.service';
 import { RequestOtpService } from './services/request-otp.service';
 import { ValidateOtpService } from './services/validate-otp.service';
-import type { GetVendorProfileRequest, UpdateVendorProfileRequest, VendorProfileResponse } from './types/vendor-profile.type';
+import type { GetVendorProfileRequest, SearchVendorsByLocationRequest, SearchVendorsByLocationResponse, UpdateVendorProfileRequest, VendorProfileResponse } from './types/vendor-profile.type';
 import { VendorProfileService } from './services/vendor-profile.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import type { AdminReviewVerificationRequest, AdminReviewVerificationResponse, GetVerificationStatusRequest, GetVerificationStatusResponse, InitiateVerificationRequest, InitiateVerificationResponse, SubmitVerificationRequest, SubmitVerificationResponse } from './types/vendor-verification.type';
@@ -249,5 +249,10 @@ export class AuthController {
     return this.vendorVerificationService.adminReviewVerification(data);
   }
 
-
+  @GrpcMethod('AuthService', 'SearchVendorsByLocation')
+  async searchVendorsByLocation(
+    data: SearchVendorsByLocationRequest,
+  ): Promise<SearchVendorsByLocationResponse> {
+    return this.vendorProfileService.searchVendorsByLocation(data);
+  }
 }

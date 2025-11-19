@@ -1,6 +1,6 @@
 import { CreateRequestContext, EntityManager } from "@mikro-orm/postgresql";
 import { Injectable, Logger } from "@nestjs/common";
-import type { BusinessHoursDto, GetVendorProfileRequest, UpdateVendorProfileRequest, VendorProfileDto, VendorProfileResponse } from "../types/vendor-profile.type";
+import type { BusinessHoursDto, GetVendorProfileRequest, SearchVendorsByLocationRequest, SearchVendorsByLocationResponse, UpdateVendorProfileRequest, VendorDistanceDto, VendorProfileDto, VendorProfileResponse } from "../types/vendor-profile.type";
 import { User } from "src/database";
 import { VendorProfile } from "src/database/entities/vendor-profile.entity";
 import { BusinessHours } from "src/database/entities/business-hours.entity";
@@ -129,6 +129,13 @@ export class VendorProfileService {
                 vendorProfile.address = data.address;
             }
 
+            if (data.latitude !== undefined && data.longitude !== undefined) {
+                vendorProfile.latitude = data.latitude;
+                vendorProfile.longitude = data.longitude;
+                // Create PostGIS point: POINT(longitude latitude)
+                vendorProfile.location = `POINT(${data.longitude} ${data.latitude})`;
+            }
+
             if (data.coverImageUrl !== undefined) {
                 vendorProfile.coverImageUrl = data.coverImageUrl;
             }
@@ -175,6 +182,134 @@ export class VendorProfileService {
             }
         }
     }
+
+    @CreateRequestContext()
+    async searchVendorsByLocation(
+        data: SearchVendorsByLocationRequest,
+    ): Promise<SearchVendorsByLocationResponse> {
+        this.logger.log(`Searching vendors near (${data.latitude}, ${data.longitude})`);
+
+        try {
+            const radiusKm = data.radiusKm || 10;
+            const limit = data.limit || 20;
+            const offset = data.offset || 0;
+            const radiusMeters = radiusKm * 1000;
+
+            // Build WHERE clause and parameters
+            let whereClause = `location IS NOT NULL 
+        AND is_third_party_verified = true 
+        AND is_kyc_verified = true`;
+
+            let businessTypeFilter = '';
+            if (data.businessType) {
+                businessTypeFilter = ` AND business_type = ?`;
+                whereClause += businessTypeFilter;
+            }
+
+            // Build parameters array - order matters!
+            // For main query: long, lat, long, lat, radius, [businessType?], limit, offset
+            const params: (number | string)[] = [
+                data.longitude,
+                data.latitude,
+                data.longitude,
+                data.latitude,
+                radiusMeters,
+            ];
+
+            if (data.businessType) {
+                params.push(data.businessType);
+            }
+
+            params.push(limit, offset);
+
+            // PostGIS query to find vendors within radius, ordered by distance
+            const query = `
+        SELECT 
+          *,
+          ST_Distance(
+            location::geography,
+            ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography
+          ) / 1000 as distance_km
+        FROM auth.vendor_profile
+        WHERE ${whereClause}
+          AND ST_DWithin(
+            location::geography,
+            ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography,
+            ?
+          )
+        ORDER BY distance_km ASC
+        LIMIT ? OFFSET ?
+      `;
+
+            const vendors = await this.em.getConnection().execute(query, params);
+
+            // Get total count
+            const countParams: (number | string)[] = [
+                data.longitude,
+                data.latitude,
+                radiusMeters,
+            ];
+
+            if (data.businessType) {
+                countParams.push(data.businessType);
+            }
+
+            const countQuery = `
+        SELECT COUNT(*) as total
+        FROM auth.vendor_profile
+        WHERE ${whereClause}
+          AND ST_DWithin(
+            location::geography,
+            ST_SetSRID(ST_MakePoint(?, ?), 4326)::geography,
+            ?
+          )
+      `;
+
+            const countResult = await this.em.getConnection().execute(countQuery, countParams);
+
+            const total = parseInt(countResult[0]?.total || '0');
+
+            // Map to DTOs
+            const vendorDtos: VendorDistanceDto[] = vendors.map((v: any) => ({
+                id: v.id,
+                userId: v.user_id,
+                businessName: v.business_name,
+                businessType: v.business_type,
+                address: v.address,
+                latitude: parseFloat(v.latitude),
+                longitude: parseFloat(v.longitude),
+                coverImageUrl: v.cover_image_url,
+                description: v.description,
+                serviceTypes: v.service_types,
+                isProfileComplete: v.is_profile_complete,
+                isThirdPartyVerified: v.is_third_party_verified,
+                isKycVerified: v.is_kyc_verified,
+                verificationStep: v.verification_step,
+                businessHours: [], // Can populate separately if needed
+                createdAt: v.created_at,
+                updatedAt: v.updated_at,
+                distanceKm: Number(parseFloat(v.distance_km).toFixed(2)), // Distance in km
+            }));
+
+            return {
+                message: 'Vendors retrieved successfully',
+                statusCode: 200,
+                success: true,
+                vendors: vendorDtos,
+                total,
+            };
+        } catch (error: any) {
+            this.logger.error(`Error searching vendors: ${error.message}`, error.stack);
+            return {
+                message: 'Failed to search vendors',
+                statusCode: 500,
+                success: false,
+                vendors: [],
+                total: 0,
+            };
+        }
+    }
+
 
     private async updateBusinessHours(
         vendorProfile: VendorProfile,
@@ -236,11 +371,13 @@ export class VendorProfileService {
             businessName: profile.businessName,
             businessType: profile.businessType,
             address: profile.address,
+            latitude: profile.latitude,
+            longitude: profile.longitude,
             coverImageUrl: profile.coverImageUrl,
             description: profile.description,
             serviceTypes: profile.serviceTypes,
             isProfileComplete: Boolean(profile.isProfileComplete),
-            isThirdPartyVerified: Boolean(profile.isThirdPartyVerified), 
+            isThirdPartyVerified: Boolean(profile.isThirdPartyVerified),
             isKycVerified: Boolean(profile.isKycVerified),
             verificationStep: profile.verificationStep ?? 0,
             businessHours: profile.businessHours
