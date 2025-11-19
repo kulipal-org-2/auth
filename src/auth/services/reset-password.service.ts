@@ -1,7 +1,7 @@
 import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { CustomLogger as Logger } from 'kulipal-shared';
-import { MessageResponse } from '../types/auth.type';
+import type { MessageResponse, ResetPasswordRequest } from '../types/auth.type';
 import { createHash } from 'crypto';
 import { User, ResetPasswordToken } from 'src/database';
 import { RegisterService } from './register.service';
@@ -16,15 +16,8 @@ export class ResetPasswordService {
   ) {}
 
   @CreateRequestContext()
-  async execute({
-    token,
-    email,
-    newPassword,
-  }: {
-    token: string;
-    email: string;
-    newPassword: string;
-  }): Promise<MessageResponse> {
+  async execute(data: ResetPasswordRequest): Promise<MessageResponse> {
+    const { token, email, newPassword } = data;
     this.logger.debug('Validating reset token...');
 
     try {
@@ -35,7 +28,7 @@ export class ResetPasswordService {
         this.logger.warn('Invalid token: no matching record');
         return {
           message: 'Invalid token',
-          statusCode: 400,
+          statusCode: HttpStatus.BAD_REQUEST,
           success: false,
         };
       }
@@ -45,8 +38,8 @@ export class ResetPasswordService {
       if (!user) {
         this.logger.warn('Invalid token: no matching user');
         return {
-          message: 'Invalid token',
-          statusCode: 400,
+          message: 'User not found for provided email',
+          statusCode: HttpStatus.NOT_FOUND,
           success: false,
         };
       }
@@ -55,7 +48,7 @@ export class ResetPasswordService {
         this.logger.warn('Invalid token: not for the right user');
         return {
           message: 'Invalid token',
-          statusCode: 400,
+          statusCode: HttpStatus.BAD_REQUEST,
           success: false,
         };
       }
@@ -65,7 +58,7 @@ export class ResetPasswordService {
         await this.em.removeAndFlush(record);
         return {
           message: 'Token has expired',
-          statusCode: 400,
+          statusCode: HttpStatus.BAD_REQUEST,
           success: false,
         };
       }
@@ -83,14 +76,14 @@ export class ResetPasswordService {
       this.logger.debug('Password successfully updated');
       return {
         message: 'Password has been reset successfully',
-        statusCode: 200,
+        statusCode: HttpStatus.OK,
         success: true,
       };
     } catch (error) {
       this.logger.error('Error resetting password', error as any);
       return {
         message: 'Internal error while resetting password',
-        statusCode: 500,
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
         success: false,
       };
     }

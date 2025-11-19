@@ -7,8 +7,7 @@ import {
 import { type CreateUserType } from 'kulipal-shared';
 import { hash } from 'argon2';
 import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
-import { User } from 'src/database';
-import type { UserType } from 'src/database/entities/user.entity';
+import { User, UserType } from 'src/database';
 import type { RegisterResponse } from '../types/auth.type';
 
 @Injectable()
@@ -17,9 +16,7 @@ export class RegisterService {
   constructor(private readonly em: EntityManager) {}
 
   @CreateRequestContext()
-  async execute(
-    data: CreateUserType & { userType: UserType },
-  ): Promise<RegisterResponse> {
+  async execute(data: CreateUserType): Promise<RegisterResponse> {
     this.logger.log(`Attempting to register user with email ${data.email}`);
     const {
       email,
@@ -29,7 +26,6 @@ export class RegisterService {
       phoneNumber,
       source,
       agreeToTerms,
-      userType,
     } = data;
 
     if (!phoneNumber?.trim()) {
@@ -86,7 +82,7 @@ export class RegisterService {
       password: hashedPassword,
       phoneNumber: normalizedPhoneNumber,
       source,
-      userType,
+      userType: UserType.USER,
     });
 
     await this.em.persistAndFlush(user);

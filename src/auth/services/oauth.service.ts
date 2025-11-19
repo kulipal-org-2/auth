@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { OAuth2Client } from 'google-auth-library';
@@ -86,11 +86,7 @@ export class OauthService {
       return {
         message: 'We could not complete that request',
         success: false,
-        statusCode: 400,
-        credentials: {
-          accessToken: '',
-          refreshToken: '',
-        },
+        statusCode: HttpStatus.BAD_REQUEST,
         user: null,
       };
     }
@@ -132,11 +128,7 @@ export class OauthService {
       return {
         message: 'We could not complete that request',
         success: false,
-        statusCode: 400,
-        credentials: {
-          accessToken: '',
-          refreshToken: '',
-        },
+        statusCode: HttpStatus.BAD_REQUEST,
         user: null,
       };
     }
@@ -152,12 +144,8 @@ export class OauthService {
       return {
         message:
           "We couldn't find a user associated with that account. Please sign up.",
-        statusCode: 404,
+        statusCode: HttpStatus.NOT_FOUND,
         success: false,
-        credentials: {
-          accessToken: '',
-          refreshToken: '',
-        },
         user: null,
       };
     }
@@ -178,7 +166,7 @@ export class OauthService {
     return {
       message: 'Login successful',
       credentials,
-      statusCode: 200,
+      statusCode: HttpStatus.OK,
       success: true,
       user: userPayload,
     };

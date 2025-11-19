@@ -1,10 +1,12 @@
 import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { CustomLogger as Logger } from 'kulipal-shared';
-import { MessageResponse } from '../types/auth.type';
+import {
+  type ChangePasswordRequest,
+  MessageResponse,
+} from '../types/auth.type';
 import { verify } from 'argon2';
-// import { createHash } from 'crypto';
 import { User } from 'src/database';
 import { RegisterService } from './register.service';
 
@@ -19,33 +21,37 @@ export class ChangePasswordService {
   ) {}
 
   @CreateRequestContext()
-  async execute({
-    token,
-    currentPassword,
-    newPassword,
-  }: {
-    token: string;
-    currentPassword: string;
-    newPassword: string;
-  }): Promise<MessageResponse> {
+  async execute(
+    data: ChangePasswordRequest,
+    token: string,
+  ): Promise<MessageResponse> {
     this.logger.debug('Validating current password...');
 
     try {
+      const { currentPassword, newPassword } = data;
       if (!token) {
-        return { message: 'Unauthorized', statusCode: 401, success: false };
+        return {
+          message: 'Unauthorized',
+          statusCode: HttpStatus.UNAUTHORIZED,
+          success: false,
+        };
       }
 
       const { userId } = this.jwtService.verify<{ userId: string }>(token);
 
       const user = await this.em.findOne(User, { id: userId });
       if (!user || !user.password) {
-        return { message: 'Unauthorized', statusCode: 401, success: false };
+        return {
+          message: 'Unauthorized',
+          statusCode: HttpStatus.UNAUTHORIZED,
+          success: false,
+        };
       }
 
       if (currentPassword === newPassword) {
         return {
           message: 'New password cannot be the same as the current password',
-          statusCode: 400,
+          statusCode: HttpStatus.BAD_REQUEST,
           success: false,
         };
       }
@@ -54,7 +60,7 @@ export class ChangePasswordService {
       if (!matches) {
         return {
           message: 'Current password is incorrect',
-          statusCode: 400,
+          statusCode: HttpStatus.BAD_REQUEST,
           success: false,
         };
       }
@@ -64,8 +70,8 @@ export class ChangePasswordService {
       await this.em.flush();
 
       return {
-        message: 'Password has been reset successfully',
-        statusCode: 200,
+        message: 'Password has been changed successfully',
+        statusCode: HttpStatus.OK,
         success: true,
       };
     } catch (error) {
@@ -73,7 +79,7 @@ export class ChangePasswordService {
       console.error(error);
       return {
         message: 'Internal error while changing password',
-        statusCode: 500,
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
         success: false,
       };
     }

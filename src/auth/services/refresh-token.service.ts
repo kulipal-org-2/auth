@@ -1,10 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { CustomLogger as Logger } from 'kulipal-shared';
 import { createHash, randomBytes } from 'crypto';
 import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
 import { RefreshToken, User } from 'src/database';
-import type { LoginResponse, RegisteredUser } from '../types/auth.type';
+import type { LoginResponse, RefreshTokenRequest, RegisteredUser } from '../types/auth.type';
 
 @Injectable()
 export class RefreshAccessTokenService {
@@ -16,13 +16,8 @@ export class RefreshAccessTokenService {
   ) {}
 
   @CreateRequestContext()
-  async execute({
-    userId,
-    refreshToken,
-  }: {
-    userId: string;
-    refreshToken: string;
-  }): Promise<LoginResponse> {
+  async execute(data: RefreshTokenRequest): Promise<LoginResponse> {
+    const { userId, refreshToken } = data;
     const hashed = createHash('sha512').update(refreshToken).digest('hex');
 
     const token = await this.em.findOne(RefreshToken, {
@@ -36,12 +31,8 @@ export class RefreshAccessTokenService {
       );
       return {
         success: false,
-        statusCode: 401,
+        statusCode: HttpStatus.UNAUTHORIZED,
         message: 'The refresh token provided is invalid.',
-        credentials: {
-          accessToken: '',
-          refreshToken: '',
-        },
         user: null,
       };
     }
@@ -95,7 +86,7 @@ export class RefreshAccessTokenService {
     }
 
     return {
-      statusCode: 200,
+      statusCode: HttpStatus.OK,
       success: true,
       message: 'Token refreshed successfully',
       credentials,
