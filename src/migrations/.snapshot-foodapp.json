@@ -525,6 +525,37 @@
           "length": 255,
           "mappedType": "string"
         },
+        "latitude": {
+          "name": "latitude",
+          "type": "numeric(10,8)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "precision": 10,
+          "scale": 8,
+          "mappedType": "decimal"
+        },
+        "longitude": {
+          "name": "longitude",
+          "type": "numeric(11,8)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "precision": 11,
+          "scale": 8,
+          "mappedType": "decimal"
+        },
+        "location": {
+          "name": "location",
+          "type": "geography(Point, 4326)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "unknown"
+        },
         "cover_image_url": {
           "name": "cover_image_url",
           "type": "varchar(255)",
@@ -606,6 +637,17 @@
           "constraint": true,
           "primary": false,
           "unique": true
+        },
+        {
+          "keyName": "vendor_profile_location_index",
+          "columnNames": [
+            "location"
+          ],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "type": "gist"
         },
         {
           "keyName": "vendor_profile_pkey",

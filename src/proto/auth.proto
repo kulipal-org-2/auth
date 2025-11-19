@@ -23,6 +23,7 @@ service AuthService {
   rpc SubmitVendorVerification (SubmitVerificationDto) returns (SubmitVerificationResponse) {}
   rpc GetVendorVerificationStatus (GetVerificationStatusDto) returns (GetVerificationStatusResponse) {}
   rpc AdminReviewVendorVerification (AdminReviewVerificationDto) returns (AdminReviewVerificationResponse) {}
+  rpc SearchVendorsByLocation (SearchVendorsByLocationDto) returns (SearchVendorsByLocationResponse) {}
 }
 
 // Request DTOs
@@ -189,6 +190,8 @@ message VendorProfileDto {
   repeated BusinessHoursDto businessHours = 13;
   string createdAt = 14;
   string updatedAt = 15;
+  double latitude = 16;
+  double longitude = 17;
 }
 
 message GetVendorProfileDto {
@@ -205,6 +208,8 @@ message UpdateVendorProfileDto {
   repeated string serviceTypes = 7;
   repeated BusinessHoursInput businessHours = 8;
   int32 verificationStep = 9;
+   double latitude = 10;
+  double longitude = 11;
 }
 
 message VendorProfileResponse {
@@ -281,4 +286,41 @@ message AdminReviewVerificationResponse {
   string message = 1;
   int32 statusCode = 2;
   bool success = 3;
+}
+
+message SearchVendorsByLocationDto {
+  double latitude = 1;
+  double longitude = 2;
+  double radiusKm = 3;
+  string industry = 4;
+  int32 limit = 5;
+  int32 offset = 6;
+}
+
+message VendorDistanceDto {
+  string id = 1;
+  string userId = 2;
+  string businessName = 3;
+  string businessType = 4;
+  string address = 5;
+  double latitude = 6;
+  double longitude = 7;
+  string coverImageUrl = 8;
+  string description = 9;
+  repeated string serviceTypes = 10;
+  bool isProfileComplete = 11;
+  bool isThirdPartyVerified = 12;
+  bool isKycVerified = 13;
+  int32 verificationStep = 14;
+  double distanceKm = 15;
+  string createdAt = 16;
+  string updatedAt = 17;
+}
+
+message SearchVendorsByLocationResponse {
+  string message = 1;
+  int32 statusCode = 2;
+  bool success = 3;
+  repeated VendorDistanceDto vendors = 4;
+  int32 total = 5;
 }

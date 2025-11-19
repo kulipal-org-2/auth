@@ -15,6 +15,8 @@ export type UpdateVendorProfileRequest = {
   businessName?: string;
   businessType?: BusinessType;
   address?: string;
+  latitude?: number;
+  longitude?: number;
   coverImageUrl?: string;
   description?: string;
   serviceTypes?: ServiceType[];
@@ -42,6 +44,8 @@ export type VendorProfileDto = {
   businessName?: string;
   businessType?: BusinessType;
   address?: string;
+  latitude?: number;
+  longitude?: number;
   coverImageUrl?: string;
   description?: string;
   serviceTypes?: ServiceType[];
@@ -59,4 +63,25 @@ export type VendorProfileResponse = {
   statusCode: number;
   success: boolean;
   profile: VendorProfileDto | null;
+};
+
+export type SearchVendorsByLocationRequest = {
+  latitude: number;
+  longitude: number;
+  radiusKm?: number; // Default 10km
+  businessType?: BusinessType;
+  limit?: number; // Default 20
+  offset?: number; // For pagination
+};
+
+export type VendorDistanceDto = VendorProfileDto & {
+  distanceKm: number;
+};
+
+export type SearchVendorsByLocationResponse = {
+  message: string;
+  statusCode: number;
+  success: boolean;
+  vendors: VendorDistanceDto[];
+  total: number;
 };

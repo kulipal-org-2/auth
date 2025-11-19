@@ -1,4 +1,4 @@
-import { Collection, Entity, EntityRepositoryType, OneToMany, Property } from "@mikro-orm/postgresql";
+import { Collection, Entity, EntityRepositoryType, Index, OneToMany, Property } from "@mikro-orm/postgresql";
 import { VendorProfileRepository } from "../repositories/vendor-profile.repository";
 import { CustomBaseEntity } from "./base.entity";
 import { BusinessHours } from "./business-hours.entity";
@@ -22,6 +22,17 @@ export class VendorProfile extends CustomBaseEntity {
 
   @Property({ nullable: true })
   address?: string;
+
+  @Property({ type: 'decimal', precision: 10, scale: 8, nullable: true })
+  latitude?: number;
+
+  @Property({ type: 'decimal', precision: 11, scale: 8, nullable: true })
+  longitude?: number;
+
+  // PostGIS geography point for efficient proximity queries
+  @Property({ type: 'geography', columnType: 'geography(Point, 4326)', nullable: true })
+  @Index({ type: 'gist' }) 
+  location?: string; // Stored as 'POINT(longitude latitude)'
 
   @Property({ nullable: true })
   coverImageUrl?: string;
