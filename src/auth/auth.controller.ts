@@ -31,6 +31,11 @@ import { ResetPasswordService } from './services/reset-password.service';
 import { ChangePasswordService } from './services/change-password.service';
 import { RequestOtpService } from './services/request-otp.service';
 import { ValidateOtpService } from './services/validate-otp.service';
+import type { GetVendorProfileRequest, UpdateVendorProfileRequest, VendorProfileResponse } from './types/vendor-profile.type';
+import { VendorProfileService } from './services/vendor-profile.service';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import type { AdminReviewVerificationRequest, AdminReviewVerificationResponse, GetVerificationStatusRequest, GetVerificationStatusResponse, InitiateVerificationRequest, InitiateVerificationResponse, SubmitVerificationRequest, SubmitVerificationResponse } from './types/vendor-verification.type';
+import { VendorVerificationService } from './services/vendor-verification.service';
 
 @Controller('auth')
 export class AuthController {
@@ -45,7 +50,10 @@ export class AuthController {
     private readonly changePasswordService: ChangePasswordService,
     private readonly requestOtpService: RequestOtpService,
     private readonly validateOtpService: ValidateOtpService,
-  ) {}
+    private readonly vendorProfileService: VendorProfileService,
+    private readonly vendorVerificationService: VendorVerificationService,
+    private readonly jwtAuthGuard: JwtAuthGuard,
+  ) { }
 
   @GrpcMethod('AuthService', 'Login')
   login(data: LoginRequest): Promise<LoginResponse> {
@@ -131,4 +139,122 @@ export class AuthController {
   validateSmsOtp(data: ValidateSmsOtpRequest): Promise<ValidateOtpResponse> {
     return this.validateOtpService.validateSmsOtp(data);
   }
+
+  @GrpcMethod('AuthService', 'GetVendorProfile')
+  async getVendorProfile(data: GetVendorProfileRequest, metadata: Metadata): Promise<VendorProfileResponse> {
+    const authResult = this.jwtAuthGuard.validateTokenAndUserId(metadata, data.userId);
+
+    if (!authResult.success) {
+      return {
+        message: authResult.message,
+        statusCode: 401,
+        success: false,
+        profile: null,
+      };
+    }
+    return this.vendorProfileService.getVendorProfile(data);
+  }
+
+  @GrpcMethod('AuthService', 'UpdateVendorProfile')
+  async updateVendorProfile(
+    data: UpdateVendorProfileRequest,
+    metadata: Metadata
+  ): Promise<VendorProfileResponse> {
+
+    const authResult = this.jwtAuthGuard.validateTokenAndUserId(
+      metadata,
+      data.userId,
+    );
+
+    if (!authResult.success) {
+      return {
+        message: authResult.message,
+        statusCode: 401,
+        success: false,
+        profile: null,
+      };
+    }
+    return this.vendorProfileService.updateVendorProfile(data);
+  }
+
+  @GrpcMethod('AuthService', 'InitiateVendorVerification')
+  async initiateVendorVerification(
+    data: InitiateVerificationRequest,
+    metadata: Metadata,
+  ): Promise<InitiateVerificationResponse> {
+    const authResult = this.jwtAuthGuard.validateTokenAndUserId(metadata, data.userId);
+
+    if (!authResult.success) {
+      return {
+        message: authResult.message,
+        statusCode: 401,
+        success: false,
+        token: null,
+        jobId: null,
+      };
+    }
+
+    return this.vendorVerificationService.initiateVerification(data);
+  }
+
+  @GrpcMethod('AuthService', 'SubmitVendorVerification')
+  async submitVendorVerification(
+    data: SubmitVerificationRequest,
+    metadata: Metadata,
+  ): Promise<SubmitVerificationResponse> {
+    const authResult = this.jwtAuthGuard.validateTokenAndUserId(metadata, data.userId);
+
+    if (!authResult.success) {
+      return {
+        message: authResult.message,
+        statusCode: 401,
+        success: false,
+        verificationId: null,
+      };
+    }
+
+    return this.vendorVerificationService.submitVerification(data);
+  }
+
+  @GrpcMethod('AuthService', 'GetVendorVerificationStatus')
+  async getVendorVerificationStatus(
+    data: GetVerificationStatusRequest,
+    metadata: Metadata,
+  ): Promise<GetVerificationStatusResponse> {
+    const authResult = this.jwtAuthGuard.validateTokenAndUserId(metadata, data.userId);
+
+    if (!authResult.success) {
+      return {
+        message: authResult.message,
+        statusCode: 401,
+        success: false,
+        isThirdPartyVerified: false,
+        isKycVerified: false,
+        verifications: [],
+      };
+    }
+
+    return this.vendorVerificationService.getVerificationStatus(data);
+  }
+
+  @GrpcMethod('AuthService', 'AdminReviewVendorVerification')
+  async adminReviewVendorVerification(
+    data: AdminReviewVerificationRequest,
+    metadata: Metadata,
+  ): Promise<AdminReviewVerificationResponse> {
+    // TODO: Add admin role check here
+    const authResult = this.jwtAuthGuard.validateToken(metadata);
+
+    if (!authResult.success) {
+      return {
+        message: authResult.message,
+        statusCode: 401,
+        success: false,
+      };
+    }
+
+    return this.vendorVerificationService.adminReviewVerification(data);
+  }
+
+
 }

@@ -15,6 +15,10 @@ import { ValidateOtpService } from './services/validate-otp.service';
 import { NotificationService } from './services/notification.service';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { join } from 'path';
+import { VendorProfileService } from './services/vendor-profile.service';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { SmileIdentityService } from './services/smile-identity.service';
+import { VendorVerificationService } from './services/vendor-verification.service';
 
 @Module({
   imports: [
@@ -47,6 +51,11 @@ import { join } from 'path';
     RequestOtpService,
     ValidateOtpService,
     NotificationService,
+    VendorProfileService,
+    JwtAuthGuard,
+    SmileIdentityService,
+    VendorProfileService,
+    VendorVerificationService,
   ],
 })
-export class AuthModule {}
+export class AuthModule { }
