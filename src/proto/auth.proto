@@ -17,6 +17,12 @@ service AuthService {
   rpc SendSmsOtp (SendSmsOtpDto) returns (MessageResponse) {}
   rpc ValidateEmailOtp (ValidateEmailOtpDto) returns (ValidateOtpResponse) {}
   rpc ValidateSmsOtp (ValidateSmsOtpDto) returns (ValidateOtpResponse) {}
+  rpc GetVendorProfile (GetVendorProfileDto) returns (VendorProfileResponse) {}
+  rpc UpdateVendorProfile (UpdateVendorProfileDto) returns (VendorProfileResponse) {}
+  rpc InitiateVendorVerification (InitiateVerificationDto) returns (InitiateVerificationResponse) {}
+  rpc SubmitVendorVerification (SubmitVerificationDto) returns (SubmitVerificationResponse) {}
+  rpc GetVendorVerificationStatus (GetVerificationStatusDto) returns (GetVerificationStatusResponse) {}
+  rpc AdminReviewVendorVerification (AdminReviewVerificationDto) returns (AdminReviewVerificationResponse) {}
 }
 
 // Request DTOs
@@ -146,4 +152,133 @@ message ValidateOtpResponse {
   bool success = 4;
   bool isValid = 5;
   UserDto user = 6;
+}
+
+message BusinessHoursInput{
+  string dayOfWeek = 1;
+  bool isOpen = 2;
+  string openTime = 3;
+  string closeTime = 4;
+  string openTime2 = 5;
+  string closeTime2 = 6;
+}
+
+message BusinessHoursDto {
+  string id = 1;
+  string dayOfWeek = 2;
+  bool isOpen = 3;
+  string openTime = 4;
+  string closeTime = 5;
+  string openTime2 = 6;
+  string closeTime2 = 7;
+}
+
+message VendorProfileDto {
+  string id = 1;
+  string userId = 2;
+  string businessName = 3;
+  string businessType = 4;
+  string address = 5;
+  string coverImageUrl = 6;
+  string description = 7;
+  repeated string serviceTypes = 8;
+  bool isProfileComplete = 9;
+  bool isThirdPartyVerified = 10;
+  bool isKycVerified = 11;
+  int32 verificationStep = 12;
+  repeated BusinessHoursDto businessHours = 13;
+  string createdAt = 14;
+  string updatedAt = 15;
+}
+
+message GetVendorProfileDto {
+  string userId = 1;
+}
+
+message UpdateVendorProfileDto {
+  string userId = 1;
+  string businessName = 2;
+  string businessType = 3;
+  string address = 4;
+  string coverImageUrl = 5;
+  string description = 6;
+  repeated string serviceTypes = 7;
+  repeated BusinessHoursInput businessHours = 8;
+  int32 verificationStep = 9;
+}
+
+message VendorProfileResponse {
+  string message = 1;
+  int32 statusCode = 2;
+  bool success = 3;
+  VendorProfileDto profile = 4;
+}
+
+message InitiateVerificationDto {
+  string userId = 1;
+}
+
+message InitiateVerificationResponse {
+  string message = 1;
+  int32 statusCode = 2;
+  bool success = 3;
+  string token = 4;
+  string jobId = 5;
+}
+
+message SubmitVerificationDto {
+  string userId = 1;
+  string documentType = 2;
+  string documentNumber = 3;
+  string dateOfBirth = 4;
+  string selfieImageBase64 = 5;
+  string documentImageBase64 = 6;
+  string selfieImageUrl = 7;
+  string documentImageUrl = 8;
+}
+
+message SubmitVerificationResponse {
+  string message = 1;
+  int32 statusCode = 2;
+  bool success = 3;
+  string verificationId = 4;
+}
+
+message GetVerificationStatusDto {
+  string userId = 1;
+}
+
+message VerificationDto {
+  string id = 1;
+  string verificationType = 2;
+  string status = 3;
+  string documentType = 4;
+  string smileResultText = 5;
+  string reviewNotes = 6;
+  string rejectionReason = 7;
+  string createdAt = 8;
+  string reviewedAt = 9;
+}
+
+message GetVerificationStatusResponse {
+  string message = 1;
+  int32 statusCode = 2;
+  bool success = 3;
+  bool isThirdPartyVerified = 4;
+  bool isKycVerified = 5;
+  repeated VerificationDto verifications = 6;
+}
+
+message AdminReviewVerificationDto {
+  string verificationId = 1;
+  string adminUserId = 2;
+  bool approved = 3;
+  string reviewNotes = 4;
+  string rejectionReason = 5;
+}
+
+message AdminReviewVerificationResponse {
+  string message = 1;
+  int32 statusCode = 2;
+  bool success = 3;
 }
