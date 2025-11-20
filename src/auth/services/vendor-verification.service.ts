@@ -1,4 +1,4 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, HttpStatus } from '@nestjs/common';
 import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
 import { VendorProfile, VendorVerification, User } from 'src/database/entities';
 import { SmileIdentityService } from './smile-identity.service';
@@ -37,7 +37,7 @@ export class VendorVerificationService {
       if (!user || user.userType !== 'vendor') {
         return {
           message: 'User not found or not a vendor',
-          statusCode: 404,
+          statusCode: HttpStatus.NOT_FOUND,
           success: false,
           token: null,
           jobId: null,
@@ -51,7 +51,7 @@ export class VendorVerificationService {
       if (!vendorProfile) {
         return {
           message: 'Vendor profile not found',
-          statusCode: 404,
+          statusCode: HttpStatus.NOT_FOUND,
           success: false,
           token: null,
           jobId: null,
@@ -82,7 +82,7 @@ export class VendorVerificationService {
 
       return {
         message: 'Verification initiated successfully',
-        statusCode: 200,
+        statusCode: HttpStatus.OK,
         success: true,
         token: token,
         jobId: jobId,
@@ -91,7 +91,7 @@ export class VendorVerificationService {
       this.logger.error(`Error initiating verification: ${error.message}`, error.stack);
       return {
         message: 'Failed to initiate verification',
-        statusCode: 500,
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
         success: false,
         token: null,
         jobId: null,
@@ -113,7 +113,7 @@ export class VendorVerificationService {
       if (!user || user.userType !== 'vendor') {
         return {
           message: 'User not found or not a vendor',
-          statusCode: 404,
+          statusCode: HttpStatus.NOT_FOUND,
           success: false,
           verificationId: null,
         };
@@ -126,7 +126,7 @@ export class VendorVerificationService {
       if (!vendorProfile) {
         return {
           message: 'Vendor profile not found',
-          statusCode: 404,
+          statusCode: HttpStatus.NOT_FOUND,
           success: false,
           verificationId: null,
         };
@@ -177,7 +177,7 @@ export class VendorVerificationService {
         message: smileResult.success
           ? 'Verification successful'
           : `Verification failed: ${smileResult.resultText}`,
-        statusCode: smileResult.success ? 200 : 400,
+        statusCode: smileResult.success ? HttpStatus.OK : HttpStatus.BAD_REQUEST,
         success: smileResult.success,
         verificationId: verification.id,
       };
@@ -185,7 +185,7 @@ export class VendorVerificationService {
       this.logger.error(`Error submitting verification: ${error.message}`, error.stack);
       return {
         message: 'Failed to submit verification',
-        statusCode: 500,
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
         success: false,
         verificationId: null,
       };
@@ -209,7 +209,7 @@ export class VendorVerificationService {
       if (!vendorProfile) {
         return {
           message: 'Vendor profile not found',
-          statusCode: 404,
+          statusCode: HttpStatus.NOT_FOUND,
           success: false,
           isThirdPartyVerified: false,
           isKycVerified: false,
@@ -231,7 +231,7 @@ export class VendorVerificationService {
 
       return {
         message: 'Verification status retrieved successfully',
-        statusCode: 200,
+        statusCode: HttpStatus.OK,
         success: true,
         isThirdPartyVerified: Boolean(vendorProfile.isThirdPartyVerified),
         isKycVerified: Boolean(vendorProfile.isKycVerified),
@@ -241,7 +241,7 @@ export class VendorVerificationService {
       this.logger.error(`Error getting verification status: ${error.message}`, error.stack);
       return {
         message: 'Failed to get verification status',
-        statusCode: 500,
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
         success: false,
         isThirdPartyVerified: false,
         isKycVerified: false,
@@ -269,7 +269,7 @@ export class VendorVerificationService {
       if (!verification) {
         return {
           message: 'Verification not found',
-          statusCode: 404,
+          statusCode: HttpStatus.NOT_FOUND,
           success: false,
         };
       }
@@ -310,14 +310,14 @@ export class VendorVerificationService {
         message: data.approved
           ? 'Verification approved successfully'
           : 'Verification rejected',
-        statusCode: 200,
+        statusCode: HttpStatus.OK,
         success: true,
       };
     } catch (error: any) {
       this.logger.error(`Error reviewing verification: ${error.message}`, error.stack);
       return {
         message: 'Failed to review verification',
-        statusCode: 500,
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
         success: false,
       };
     }

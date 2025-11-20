@@ -1,5 +1,5 @@
 import { CreateRequestContext, EntityManager } from "@mikro-orm/postgresql";
-import { Injectable, Logger } from "@nestjs/common";
+import { HttpStatus, Injectable, Logger } from "@nestjs/common";
 import type { BusinessHoursDto, GetVendorProfileRequest, SearchVendorsByLocationRequest, SearchVendorsByLocationResponse, UpdateVendorProfileRequest, VendorDistanceDto, VendorProfileDto, VendorProfileResponse } from "../types/vendor-profile.type";
 import { User } from "src/database";
 import { VendorProfile } from "src/database/entities/vendor-profile.entity";
@@ -22,7 +22,7 @@ export class VendorProfileService {
                 this.logger.warn(`User not found: ${data.userId}`);
                 return {
                     message: 'User not found',
-                    statusCode: 404,
+                    statusCode: HttpStatus.NOT_FOUND,
                     success: false,
                     profile: null
                 };
@@ -32,7 +32,7 @@ export class VendorProfileService {
                 this.logger.warn(`User not a vendor: ${data.userId}`);
                 return {
                     message: 'User is not a vendor',
-                    statusCode: 403,
+                    statusCode: HttpStatus.FORBIDDEN,
                     success: false,
                     profile: null
                 }
@@ -61,7 +61,7 @@ export class VendorProfileService {
 
             return {
                 message: 'Vendor profile retrieved successfully',
-                statusCode: 200,
+                statusCode: HttpStatus.OK,
                 success: true,
                 profile: profileDto,
             };
@@ -69,7 +69,7 @@ export class VendorProfileService {
             this.logger.error(`Error fetching vendor profile: ${error.message}`, error.stack);
             return {
                 message: 'Failed to fetch vedor profile',
-                statusCode: 500,
+                statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
                 success: false,
                 profile: null,
             };
@@ -88,7 +88,7 @@ export class VendorProfileService {
 
                 return {
                     message: 'User not found',
-                    statusCode: 404,
+                    statusCode: HttpStatus.NOT_FOUND,
                     success: false,
                     profile: null,
                 };
@@ -99,7 +99,7 @@ export class VendorProfileService {
 
                 return {
                     message: 'User is not a vendor',
-                    statusCode: 403,
+                    statusCode: HttpStatus.FORBIDDEN,
                     success: false,
                     profile: null,
                 }
@@ -168,7 +168,7 @@ export class VendorProfileService {
 
             return {
                 message: 'Vendor profile updated successfully',
-                statusCode: 200,
+                statusCode: HttpStatus.OK,
                 success: true,
                 profile: profileDto,
             };
@@ -176,7 +176,7 @@ export class VendorProfileService {
             this.logger.error(`Error updating vendor profile: ${error.message}`, error.stack);
             return {
                 message: 'Failed to update vendor profile',
-                statusCode: 500,
+                statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
                 success: false,
                 profile: null
             }
@@ -293,7 +293,7 @@ export class VendorProfileService {
 
             return {
                 message: 'Vendors retrieved successfully',
-                statusCode: 200,
+                statusCode: HttpStatus.OK,
                 success: true,
                 vendors: vendorDtos,
                 total,
@@ -302,7 +302,7 @@ export class VendorProfileService {
             this.logger.error(`Error searching vendors: ${error.message}`, error.stack);
             return {
                 message: 'Failed to search vendors',
-                statusCode: 500,
+                statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
                 success: false,
                 vendors: [],
                 total: 0,
