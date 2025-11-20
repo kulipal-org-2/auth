@@ -1,10 +1,5 @@
 import { EntityManager } from '@mikro-orm/postgresql';
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { addMinutes } from 'date-fns';
 import * as otpGenerator from 'otp-generator';
 import type {
@@ -13,9 +8,10 @@ import type {
 } from '../types/auth.type';
 import { Otp } from 'src/database/entities/otp.entity';
 import { User } from 'src/database/entities/user.entity';
-import type { MessageResponse } from 'kulipal-shared';
+import type { MessageResponse } from '../types/auth.type';
 import { OTP_TTL } from 'src/constants/constants';
 import { NotificationService } from './notification.service';
+import { OtpChannel } from '../enums/otp.enum';
 
 @Injectable()
 export class RequestOtpService {
@@ -30,17 +26,35 @@ export class RequestOtpService {
     const em = this.em.fork();
     const email = data.email?.trim().toLowerCase();
     if (!email) {
-      throw new BadRequestException('Email is required to send OTP');
+      return {
+        message: 'Email is required to send OTP',
+        statusCode: HttpStatus.BAD_REQUEST,
+        success: false,
+      };
     }
 
     const user = await em.findOne(User, { email });
     if (!user) {
-      throw new NotFoundException('User not found for provided email');
+      this.logger.warn(`User with email ${email} does not exist`);
+      return {
+        message: 'User not found for provided email',
+        statusCode: HttpStatus.NOT_FOUND,
+        success: false,
+      };
+    }
+
+    if (user.isEmailVerified) {
+      this.logger.warn(`User with email ${email} is already email verified`);
+      return {
+        message: 'Email is already verified',
+        statusCode: HttpStatus.BAD_REQUEST,
+        success: false,
+      };
     }
 
     return this.processOtpRequest({
       em,
-      channel: 'email',
+      otpChannel: OtpChannel.EMAIL,
       identifier: email,
       user,
       successMessage: 'OTP sent to email successfully',
@@ -51,17 +65,37 @@ export class RequestOtpService {
     const em = this.em.fork();
     const phoneNumber = data.phoneNumber?.trim();
     if (!phoneNumber) {
-      throw new BadRequestException('Phone number is required to send OTP');
+      return {
+        message: 'Phone number is required to send OTP',
+        statusCode: HttpStatus.BAD_REQUEST,
+        success: false,
+      };
     }
 
     const user = await em.findOne(User, { phoneNumber });
     if (!user) {
-      throw new NotFoundException('User not found for provided phone number');
+      this.logger.warn(`User with phone number ${phoneNumber} does not exist`);
+      return {
+        message: 'User not found for provided phone number',
+        statusCode: HttpStatus.NOT_FOUND,
+        success: false,
+      };
+    }
+
+    if (user.isPhoneVerified) {
+      this.logger.warn(
+        `User with phone number ${phoneNumber} is already phone verified`,
+      );
+      return {
+        message: 'Phone number is already verified',
+        statusCode: HttpStatus.BAD_REQUEST,
+        success: false,
+      };
     }
 
     return this.processOtpRequest({
       em,
-      channel: 'sms',
+      otpChannel: OtpChannel.SMS,
       identifier: phoneNumber,
       user,
       successMessage: 'OTP sent via SMS successfully',
@@ -70,13 +104,13 @@ export class RequestOtpService {
 
   private async processOtpRequest({
     em,
-    channel,
+    otpChannel,
     identifier,
     user,
     successMessage,
   }: {
     em: EntityManager;
-    channel: 'email' | 'sms';
+    otpChannel: OtpChannel;
     identifier: string;
     user: User;
     successMessage: string;
@@ -97,17 +131,21 @@ export class RequestOtpService {
     await em.persistAndFlush(otp);
 
     await this.notificationService.dispatchOtp({
-      channel,
+      otpChannel,
       user,
       token,
       expiresAt,
       validityMinutes: OTP_TTL,
     });
 
-    this.logger.debug(`Generated OTP for ${channel} identifier ${identifier}`);
+    this.logger.debug(
+      `Generated OTP for ${otpChannel} identifier ${identifier}`,
+    );
 
     return {
       message: successMessage,
+      statusCode: HttpStatus.OK,
+      success: true,
     };
   }
 

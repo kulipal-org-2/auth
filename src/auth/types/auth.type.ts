@@ -8,7 +8,6 @@ export type RegisterRequest = {
   agreeToTerms: boolean;
   source?: string;
   phoneNumber: string;
-  userType: UserType;
 };
 
 export type RegisteredUser = {
@@ -34,8 +33,8 @@ export type LoginCredentials = {
 };
 
 export type LoginResponse = {
+  credentials?: LoginCredentials;
   message: string;
-  credentials: LoginCredentials;
   statusCode: number;
   success: boolean;
   user: RegisteredUser | null;
@@ -101,13 +100,12 @@ export type ValidateOtpRequest = {
 };
 
 export type ValidateOtpResponse = {
+  credentials?: LoginCredentials;
   message: string;
   statusCode: number;
   success: boolean;
   isValid: boolean;
-  accessToken: string | null;
-  userId: string | null;
-  userType: UserType | null;
+  user: RegisteredUser | null;
 };
 
 export type ValidateTokenResponse = {

@@ -1,5 +1,5 @@
 import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { verify } from 'argon2';
 import { createHash, randomBytes } from 'crypto';
@@ -35,13 +35,9 @@ export class LoginService {
       this.logger.warn(`User with email ${email} does not exist`);
 
       return {
-        message: 'There is no account with this email. Please sign up.',
-        statusCode: 404,
+        message: 'Incorrect email or password provided.',
+        statusCode: HttpStatus.UNAUTHORIZED,
         success: false,
-        credentials: {
-          accessToken: '',
-          refreshToken: '',
-        },
         user: null,
       };
     }
@@ -53,13 +49,9 @@ export class LoginService {
         `User ${existingUser.id} who signed up via o-auth attempted to login with password`,
       );
       return {
-        message: 'There is no account with this email. Please sign up.',
-        statusCode: 404,
+        message: 'Incorrect email or password provided.',
+        statusCode: HttpStatus.UNAUTHORIZED,
         success: false,
-        credentials: {
-          accessToken: '',
-          refreshToken: '',
-        },
         user: null,
       };
     }
@@ -68,12 +60,8 @@ export class LoginService {
       this.logger.warn(`User with email ${email} provided incorrect password`);
       return {
         message: 'Incorrect email or password provided.',
-        statusCode: 401,
+        statusCode: HttpStatus.UNAUTHORIZED,
         success: false,
-        credentials: {
-          accessToken: '',
-          refreshToken: '',
-        },
         user: null,
       };
     }
@@ -98,17 +86,13 @@ export class LoginService {
     return {
       message: 'Login successful',
       credentials,
-      statusCode: 200,
+      statusCode: HttpStatus.OK,
       success: true,
       user: userPayload,
     };
   }
 
-  private comparePassword(digest: string, password: string) {
-    return verify(digest, password);
-  }
-
-  private async generateCredentials(userId: string) {
+  async generateCredentials(userId: string) {
     const accessToken = this.jwtService.sign({ userId }, { expiresIn: '1h' });
     const refreshToken = randomBytes(32).toString('base64url');
     const tokenHash = createHash('sha512').update(refreshToken).digest('hex');
@@ -127,5 +111,9 @@ export class LoginService {
       });
 
     return { accessToken, refreshToken };
+  }
+
+  private comparePassword(digest: string, password: string) {
+    return verify(digest, password);
   }
 }

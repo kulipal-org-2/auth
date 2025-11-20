@@ -2,7 +2,10 @@ import { CustomBaseEntity } from './base.entity';
 import { UserRepository } from '../repositories/user.repository';
 import { Entity, EntityRepositoryType, Property } from '@mikro-orm/postgresql';
 
-export type UserType = 'user' | 'vendor';
+export enum UserType {
+  USER = 'user',
+  VENDOR = 'vendor',
+}
 
 @Entity({ repository: () => UserRepository })
 export class User extends CustomBaseEntity {

@@ -3,6 +3,7 @@ import type { ClientGrpc } from '@nestjs/microservices';
 import { lastValueFrom } from 'rxjs';
 import { User } from 'src/database/entities/user.entity';
 import type { NotificationGrpcService } from '../interfaces/notification-service.interface';
+import { OtpChannel } from '../enums/otp.enum';
 
 @Injectable()
 export class NotificationService implements OnModuleInit {
@@ -22,13 +23,13 @@ export class NotificationService implements OnModuleInit {
   }
 
   async dispatchOtp({
-    channel,
+    otpChannel,
     user,
     token,
     expiresAt,
     validityMinutes,
   }: {
-    channel: 'email' | 'sms';
+    otpChannel: OtpChannel;
     user: User;
     token: string;
     expiresAt: Date;
@@ -42,8 +43,8 @@ export class NotificationService implements OnModuleInit {
     const expiryMinutes = validityMinutes.toString();
 
     try {
-      if (channel === 'email') {
-        const username = user.getFullName();
+      if (otpChannel === OtpChannel.EMAIL) {
+        const username = user.firstName;
 
         await lastValueFrom(
           this.notificationClient.Email({
@@ -74,7 +75,7 @@ export class NotificationService implements OnModuleInit {
       this.logger.log(`OTP SMS dispatched to ${user.phoneNumber}`);
     } catch (error: any) {
       this.logger.error(
-        `Failed to dispatch OTP via ${channel} for user ${user.id}: ${error?.message ?? error}`,
+        `Failed to dispatch OTP via ${otpChannel} for user ${user.id}: ${error?.message ?? error}`,
       );
     }
   }
@@ -94,7 +95,7 @@ export class NotificationService implements OnModuleInit {
     }
 
     try {
-      const username = user.getFullName();
+      const username = user.firstName;
 
       await lastValueFrom(
         this.notificationClient.Email({

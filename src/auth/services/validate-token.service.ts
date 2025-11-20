@@ -1,8 +1,8 @@
 import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { addMinutes } from 'date-fns';
 import { CustomLogger as Logger } from 'kulipal-shared';
-import { ValidateTokenResponse } from '../types/auth.type';
+import type { ValidateTokenRequest, ValidateTokenResponse } from '../types/auth.type';
 import { createHash } from 'crypto';
 import { User, ResetPasswordToken } from 'src/database';
 
@@ -13,23 +13,18 @@ export class ValidateTokenService {
   constructor(private readonly em: EntityManager) {}
 
   @CreateRequestContext()
-  async execute({
-    token,
-    email,
-  }: {
-    token: string;
-    email: string;
-  }): Promise<ValidateTokenResponse> {
+  async execute(data: ValidateTokenRequest): Promise<ValidateTokenResponse> {
     this.logger.debug('Validating reset token...');
 
     try {
+      const {token, email} = data;
       const tokenHash = createHash('sha512').update(token).digest('hex');
       const record = await this.em.findOne(ResetPasswordToken, { tokenHash });
       if (!record) {
         this.logger.warn('Invalid token: no matching record');
         return {
           message: 'Invalid token',
-          statusCode: 400,
+          statusCode: HttpStatus.BAD_REQUEST,
           success: false,
           isValid: false,
         };
@@ -40,8 +35,8 @@ export class ValidateTokenService {
       if (!user) {
         this.logger.warn('Invalid token: no matching user');
         return {
-          message: 'Invalid token',
-          statusCode: 400,
+          message: 'User not found for provided email',
+          statusCode: HttpStatus.NOT_FOUND,
           success: false,
           isValid: false,
         };
@@ -51,7 +46,7 @@ export class ValidateTokenService {
         this.logger.warn('Invalid token: not for the right user');
         return {
           message: 'Invalid token',
-          statusCode: 400,
+          statusCode: HttpStatus.BAD_REQUEST,
           success: false,
           isValid: false,
         };
@@ -62,7 +57,7 @@ export class ValidateTokenService {
         await this.em.removeAndFlush(record);
         return {
           message: 'Token has expired',
-          statusCode: 400,
+          statusCode: HttpStatus.BAD_REQUEST,
           success: false,
           isValid: false,
         };
@@ -76,7 +71,7 @@ export class ValidateTokenService {
       this.logger.debug('Token successfully validated');
       return {
         message: 'Token is valid',
-        statusCode: 200,
+        statusCode: HttpStatus.OK,
         success: true,
         isValid: true,
       };
@@ -85,7 +80,7 @@ export class ValidateTokenService {
       console.error(error);
       return {
         message: 'Internal error while validating token',
-        statusCode: 500,
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
         success: false,
         isValid: false,
       };
