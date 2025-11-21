@@ -5,20 +5,20 @@ import * as SmileIdentityCore from 'smile-identity-core';
 export interface SmileIdentityConfig {
   partnerId: string;
   apiKey: string;
-  sidServer: string; // '0' for sandbox, '1' for production
+  sidServer: string;
   callbackUrl: string;
 }
 
 export interface DocumentVerificationParams {
-  userId: string;
+  smileUserId: string;
   jobId: string;
-  idType: string; // e.g., 'NIN', 'BVN', 'PASSPORT'
+  idType: string;
   idNumber?: string;
   firstName?: string;
   lastName?: string;
-  dob?: string; // YYYY-MM-DD
-  selfieImageBase64: string;
-  documentImageBase64?: string;
+  dob?: string;
+  selfieImageUrl: string;
+  documentImageUrl?: string;
 }
 
 export interface SmileVerificationResult {
@@ -51,7 +51,7 @@ export class SmileIdentityService {
     this.config = {
       partnerId: this.configService.get<string>('SMILE_IDENTITY_PARTNER_ID') ?? '6709',
       apiKey: this.configService.get<string>('SMILE_IDENTITY_API_KEY') ?? '',
-      sidServer: this.configService.get<string>('SMILE_IDENTITY_SERVER') ?? '0', // 0 = sandbox
+      sidServer: this.configService.get<string>('SMILE_IDENTITY_SERVER') ?? '0',
       callbackUrl: this.configService.get<string>('SMILE_IDENTITY_CALLBACK_URL') ?? '',
     };
 
@@ -69,39 +69,30 @@ export class SmileIdentityService {
     }
   }
 
-  /**
-   * Submit a document verification job to Smile Identity
-   */
-  async submitDocumentVerification(
-    params: DocumentVerificationParams,
-  ): Promise<SmileVerificationResult> {
+  async submitDocumentVerification(params: DocumentVerificationParams): Promise<SmileVerificationResult> {
     try {
-      this.logger.log(`Submitting document verification for user: ${params.userId}`);
+      this.logger.log(`Submitting document verification for user: ${params.smileUserId}`);
 
-      // Partner parameters
       const partnerParams = {
         job_id: params.jobId,
-        user_id: params.userId,
-        job_type: 6, // Document Verification
+        user_id: params.smileUserId,
+        job_type: 6,
       };
 
-      // Image list
-      const imageDetails = [
+      const imageDetails: Array<{ image_type_id: number; image: string }> = [
         {
-          image_type_id: 2, // Selfie image base64
-          image: params.selfieImageBase64,
+          image_type_id: 2,
+          image: params.selfieImageUrl,
         },
       ];
 
-      // Add document image if provided
-      if (params.documentImageBase64) {
+      if (params.documentImageUrl) {
         imageDetails.push({
-          image_type_id: 3, // ID card image base64
-          image: params.documentImageBase64,
+          image_type_id: 3,
+          image: params.documentImageUrl,
         });
       }
 
-      // ID info (optional but recommended)
       const idInfo: any = {};
       if (params.idNumber) {
         idInfo.id_number = params.idNumber;
@@ -118,11 +109,10 @@ export class SmileIdentityService {
       if (params.dob) {
         idInfo.dob = params.dob;
       }
-      idInfo.country = 'NG'; // Nigeria
+      idInfo.country = 'NG';
 
-      // Submit job
       const options = {
-        return_job_status: true, // Get synchronous response
+        return_job_status: true,
         return_image_links: false,
         return_history: false,
       };
@@ -151,12 +141,9 @@ export class SmileIdentityService {
     }
   }
 
-  /**
-   * Get job status from Smile Identity
-   */
-  async getJobStatus(userId: string, jobId: string): Promise<SmileVerificationResult> {
+  async getJobStatus(smileUserId: string, jobId: string): Promise<SmileVerificationResult> {
     try {
-      this.logger.log(`Getting job status for user: ${userId}, job: ${jobId}`);
+      this.logger.log(`Getting job status for user: ${smileUserId}, job: ${jobId}`);
 
       const utilities = SmileIdentityCore.Utilities;
       const utilInstance = new utilities(
@@ -171,7 +158,7 @@ export class SmileIdentityService {
       };
 
       const response = await utilInstance.get_job_status(
-        userId,
+        smileUserId,
         jobId,
         options,
       );
@@ -191,15 +178,12 @@ export class SmileIdentityService {
     }
   }
 
-  /**
-   * Generate web token for hosted web integration
-   */
-  async generateWebToken(userId: string, jobId: string, product: string): Promise<string> {
+  async generateWebToken(smileUserId: string, jobId: string, product?: string): Promise<string> {
     try {
       const requestParams = {
-        user_id: userId,
+        user_id: smileUserId,
         job_id: jobId,
-        product: product, // 'doc_verification', 'biometric_kyc', etc.
+        product: product || 'doc_verification',
         callback_url: this.config.callbackUrl,
       };
 
@@ -211,9 +195,6 @@ export class SmileIdentityService {
     }
   }
 
-  /**
-   * Parse Smile Identity verification response
-   */
   private parseVerificationResponse(response: any): SmileVerificationResult {
     const result: SmileVerificationResult = {
       success: false,
@@ -234,8 +215,6 @@ export class SmileIdentityService {
       result.resultText = response.result.ResultText;
     }
 
-    // Check if verification was successful
-    // Result codes: 0810 = Document Verified, 1012 = Verified, etc.
     const successCodes = ['0810', '1012', '2302'];
     result.success = response.job_success && successCodes.includes(result.resultCode);
 
