@@ -20,6 +20,15 @@ export type RegisteredUser = {
   isEmailVerified: boolean;
   isPhoneVerified: boolean;
   source?: string;
+  businessProfile?: BusinessProfileSummary;
+};
+export type BusinessProfileSummary = {
+  id: string;
+  businessName: string;
+  industry: string;
+  isThirdPartyVerified: boolean;
+  isKycVerified: boolean;
+  coverImageUrl?: string;
 };
 
 export type RefreshTokenRequest = {

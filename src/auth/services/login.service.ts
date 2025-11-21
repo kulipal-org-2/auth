@@ -4,8 +4,8 @@ import { JwtService } from '@nestjs/jwt';
 import { verify } from 'argon2';
 import { createHash, randomBytes } from 'crypto';
 import { CustomLogger as Logger } from 'kulipal-shared';
-import { RefreshToken, User } from 'src/database';
-import type { LoginResponse, RegisteredUser } from '../types/auth.type';
+import { BusinessProfile, RefreshToken, User } from 'src/database';
+import type { BusinessProfileSummary, LoginResponse, RegisteredUser } from '../types/auth.type';
 
 export type LoginType = {
   email: string;
@@ -71,6 +71,34 @@ export class LoginService {
     );
 
     const credentials = await this.generateCredentials(existingUser.id);
+    
+    // NEW: Fetch business profile if user is a vendor
+    let businessProfile: BusinessProfileSummary | undefined;
+    if (existingUser.userType === 'vendor') {
+      this.logger.log(`User is a vendor, fetching business profile`);
+      const profile = await this.em.findOne(
+        BusinessProfile,
+        { user: existingUser.id },
+        { 
+          orderBy: { createdAt: 'DESC' }, // Get the most recent profile
+        }
+      );
+
+      if (profile) {
+        businessProfile = {
+          id: profile.id,
+          businessName: profile.businessName,
+          industry: profile.industry,
+          isThirdPartyVerified: profile.isThirdPartyVerified ?? false,
+          isKycVerified: profile.isKycVerified ?? false,
+          coverImageUrl: profile.coverImageUrl,
+        };
+        this.logger.log(`Business profile found for vendor: ${profile.id}`);
+      } else {
+        this.logger.log(`No business profile found for vendor ${existingUser.id}`);
+      }
+    }
+
     const userPayload: RegisteredUser = {
       id: existingUser.id,
       firstName: existingUser.firstName,
@@ -81,6 +109,7 @@ export class LoginService {
       isEmailVerified: Boolean(existingUser.isEmailVerified),
       isPhoneVerified: Boolean(existingUser.isPhoneVerified),
       source: existingUser.source ?? undefined,
+      businessProfile, 
     };
 
     return {
@@ -91,7 +120,7 @@ export class LoginService {
       user: userPayload,
     };
   }
-
+  
   async generateCredentials(userId: string) {
     const accessToken = this.jwtService.sign({ userId }, { expiresIn: '1h' });
     const refreshToken = randomBytes(32).toString('base64url');
