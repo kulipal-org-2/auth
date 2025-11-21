@@ -6,14 +6,15 @@ export interface JwtPayload {
     userId: string;
     iat?: number;
     exp?: number;
+    // add role or other claims here if needed
 }
 
-export interface AuthValidationResult {
-    success: boolean;
-    message: string;
-    payload?: JwtPayload;
-    userId?: string;
-}
+/**
+ * Discriminated union: when success is true, payload and userId are guaranteed.
+ */
+export type AuthValidationResult =
+    | { success: true; message: string; payload: JwtPayload; userId: string }
+    | { success: false; message: string };
 
 @Injectable()
 export class JwtAuthGuard {
@@ -22,28 +23,23 @@ export class JwtAuthGuard {
     validateToken(metadata: Metadata): AuthValidationResult {
         try {
             const token = this.extractToken(metadata);
-
             if (!token) {
-                return {
-                    success: false,
-                    message: 'Authorization token is required',
-                }
+                return { success: false, message: "Authorization token is required" };
             }
 
             const payload = this.jwtService.verify<JwtPayload>(token);
 
             if (!payload || !payload.userId) {
-                return {
-                    success: false,
-                    message: 'Invalid token payload'
-                }
+                return { success: false, message: "Invalid token payload" };
             }
 
+            // return userId explicitly so callers can use it with TS narrowing
             return {
                 success: true,
-                message: 'Token validated successfully',
+                message: "Token validated successfully",
                 payload,
-            }
+                userId: payload.userId,
+            };
         } catch (error: any) {
             return this.handleTokenError(error);
         }
@@ -51,65 +47,36 @@ export class JwtAuthGuard {
 
     validateTokenAndUserId(metadata: Metadata, requestedUserId: string): AuthValidationResult {
         const result = this.validateToken(metadata);
+        if (!result.success) return result;
 
-        if (!result.success) {
-            return result;
+        // now TS knows result.userId exists
+        if (result.userId !== requestedUserId) {
+            return { success: false, message: "Unauthorized: Token userId does not match requested userId" };
         }
-
-        if (result.payload!.userId !== requestedUserId) {
-            return {
-                success: false,
-                message: 'Unathorized: Token userId does not match requested userId',
-            }
-        }
-
         return result;
     }
 
-
     private extractToken(metadata: Metadata): string | null {
         const authHeader =
-            (metadata?.get?.('authorization')?.[0] as string) ??
-            (metadata?.get?.('Authorization')?.[0] as string);
+            (metadata?.get?.("authorization")?.[0] as string) ??
+            (metadata?.get?.("Authorization")?.[0] as string) ??
+            null;
 
-        if (!authHeader) {
-            return null;
-        }
-
-        const bearer = typeof authHeader === 'string' ? authHeader : '';
-
-        if (bearer.startsWith('Bearer ')) {
-            return bearer.slice(7);
-        }
-
-        return bearer;
+        if (!authHeader) return null;
+        const bearer = typeof authHeader === "string" ? authHeader : "";
+        return bearer.startsWith("Bearer ") ? bearer.slice(7) : bearer;
     }
 
-    /**
-     * Handles JWT verification errors
-     */
     private handleTokenError(error: any): AuthValidationResult {
-        switch (error.name) {
-            case 'TokenExpiredError':
-                return {
-                    success: false,
-                    message: 'Token has expired. Please login again',
-                };
-            case 'JsonWebTokenError':
-                return {
-                    success: false,
-                    message: 'Invalid token signature',
-                };
-            case 'NotBeforeError':
-                return {
-                    success: false,
-                    message: 'Token not yet valid',
-                };
+        switch (error?.name) {
+            case "TokenExpiredError":
+                return { success: false, message: "Token has expired. Please login again" };
+            case "JsonWebTokenError":
+                return { success: false, message: "Invalid token signature" };
+            case "NotBeforeError":
+                return { success: false, message: "Token not yet valid" };
             default:
-                return {
-                    success: false,
-                    message: 'Authentication failed',
-                };
+                return { success: false, message: "Authentication failed" };
         }
     }
 }
