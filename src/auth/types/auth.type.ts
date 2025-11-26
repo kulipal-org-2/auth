@@ -19,6 +19,7 @@ export type RegisteredUser = {
   userType: UserType;
   isEmailVerified: boolean;
   isPhoneVerified: boolean;
+  avatarUrl?: string;
   source?: string;
   businessProfile?: BusinessProfileSummary;
 };

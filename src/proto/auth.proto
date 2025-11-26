@@ -119,8 +119,9 @@ message UserDto {
   string userType = 6;
   bool isEmailVerified = 7;
   bool isPhoneVerified = 8;
-  optional string source = 9;
-  optional BusinessProfileSummaryDto businessProfile = 10; 
+  optional string avatarUrl = 9;
+  optional string source = 10;
+  optional BusinessProfileSummaryDto businessProfile = 11; 
 }
 
 message MessageResponse {

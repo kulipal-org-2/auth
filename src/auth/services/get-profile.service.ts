@@ -20,10 +20,10 @@ export class GetProfileService {
       if (!user) {
         this.logger.warn(`User with id ${userId} not found`);
         return {
+          user: null,
           message: 'User not found',
           statusCode: HttpStatus.NOT_FOUND,
           success: false,
-          user: null,
         };
       }
 
@@ -36,14 +36,15 @@ export class GetProfileService {
         userType: user.userType,
         isEmailVerified: Boolean(user.isEmailVerified),
         isPhoneVerified: Boolean(user.isPhoneVerified),
+        avatarUrl: user.avatarUrl ?? undefined,
         source: user.source ?? undefined,
       };
 
       return {
+        user: userPayload,
         message: 'Profile retrieved successfully',
         statusCode: HttpStatus.OK,
         success: true,
-        user: userPayload,
       };
     } catch (error: any) {
       this.logger.error(
@@ -51,10 +52,10 @@ export class GetProfileService {
         error.stack,
       );
       return {
+        user: null,
         message: 'Failed to fetch profile',
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
         success: false,
-        user: null,
       };
     }
   }
