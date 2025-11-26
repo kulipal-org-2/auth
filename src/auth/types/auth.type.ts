@@ -130,6 +130,19 @@ export type ResetPasswordRequest = {
   newPassword: string;
 };
 
+export type UpdateProfileRequest = {
+  firstName?: string;
+  lastName?: string;
+  avatarUrl?: string;
+};
+
+export type ProfileResponse = {
+  message: string;
+  statusCode: number;
+  success: boolean;
+  user: RegisteredUser | null;
+};
+
 export type MessageResponse = {
   message: string;
   statusCode: number;

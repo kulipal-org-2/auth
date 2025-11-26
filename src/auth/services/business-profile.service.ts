@@ -1,17 +1,33 @@
-import { CreateRequestContext, EntityManager } from "@mikro-orm/postgresql";
-import { HttpStatus, Injectable, Logger } from "@nestjs/common";
-import type { BusinessProfileDistanceDto, BusinessProfileDto, BusinessProfileResponse, BusinessProfilesResponse, CreateBusinessProfileRequest, GetBusinessProfileRequest, OperatingTimesDto, OperatingTimesInput, SearchBusinessProfilesRequest, SearchBusinessProfilesResponse, UpdateBusinessProfileRequest } from "../types/business-profile.type";
-import { BusinessProfile, OperatingTimes, User } from "src/database/entities";
-
+import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
+import type {
+  BusinessProfileDistanceDto,
+  BusinessProfileDto,
+  BusinessProfileResponse,
+  BusinessProfilesResponse,
+  CreateBusinessProfileRequest,
+  GetBusinessProfileRequest,
+  OperatingTimesDto,
+  OperatingTimesInput,
+  PublicBusinessProfileDto,
+  PublicBusinessProfileResponse,
+  SearchBusinessProfilesRequest,
+  SearchBusinessProfilesResponse,
+  UpdateBusinessProfileRequest,
+} from '../types/business-profile.type';
+import { BusinessProfile, OperatingTimes, User } from 'src/database/entities';
 
 @Injectable()
 export class BusinessProfileService {
   private readonly logger = new Logger(BusinessProfileService.name);
 
-  constructor(private readonly em: EntityManager) { }
+  constructor(private readonly em: EntityManager) {}
 
   @CreateRequestContext()
-  async createBusinessProfile(userId: string, data: CreateBusinessProfileRequest): Promise<BusinessProfileResponse> {
+  async createBusinessProfile(
+    userId: string,
+    data: CreateBusinessProfileRequest,
+  ): Promise<BusinessProfileResponse> {
     this.logger.log(`Creating business profile for user: ${userId}`);
 
     try {
@@ -66,7 +82,10 @@ export class BusinessProfileService {
         profile: profileDto,
       };
     } catch (error: any) {
-      this.logger.error(`Error creating business profile: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error creating business profile: ${error.message}`,
+        error.stack,
+      );
       return {
         message: 'Failed to create business profile',
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -77,14 +96,17 @@ export class BusinessProfileService {
   }
 
   @CreateRequestContext()
-  async updateBusinessProfile(userId: string, data: UpdateBusinessProfileRequest): Promise<BusinessProfileResponse> {
+  async updateBusinessProfile(
+    userId: string,
+    data: UpdateBusinessProfileRequest,
+  ): Promise<BusinessProfileResponse> {
     this.logger.log(`Updating business profile: ${data.businessProfileId}`);
 
     try {
       const businessProfile = await this.em.findOne(
         BusinessProfile,
         { id: data.businessProfileId },
-        { populate: ['user', 'operatingTimes'] }
+        { populate: ['user', 'operatingTimes'] },
       );
 
       if (!businessProfile) {
@@ -149,7 +171,10 @@ export class BusinessProfileService {
         profile: profileDto,
       };
     } catch (error: any) {
-      this.logger.error(`Error updating business profile: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error updating business profile: ${error.message}`,
+        error.stack,
+      );
       return {
         message: 'Failed to update business profile',
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -159,19 +184,18 @@ export class BusinessProfileService {
     }
   }
 
-
   @CreateRequestContext()
   async getBusinessProfile(
     data: GetBusinessProfileRequest,
-    userId: string,
-  ): Promise<BusinessProfileResponse> {
+    userId?: string,
+  ): Promise<BusinessProfileResponse | PublicBusinessProfileResponse> {
     this.logger.log(`Fetching business profile: ${data.businessProfileId}`);
 
     try {
       const businessProfile = await this.em.findOne(
         BusinessProfile,
         { id: data.businessProfileId },
-        { populate: ['user', 'operatingTimes'] }
+        { populate: ['user', 'operatingTimes'] },
       );
 
       if (!businessProfile) {
@@ -183,7 +207,6 @@ export class BusinessProfileService {
         };
       }
 
-
       if (userId && businessProfile.user.id !== userId) {
         return {
           message: 'You do not have permission to view this business profile',
@@ -193,16 +216,28 @@ export class BusinessProfileService {
         };
       }
 
-      const profileDto = this.mapToDto(businessProfile);
-
-      return {
-        message: 'Business profile retrieved successfully',
-        statusCode: HttpStatus.OK,
-        success: true,
-        profile: profileDto,
-      };
+      if (userId) {
+        const profileDto = this.mapToDto(businessProfile);
+        return {
+          message: 'Business profile retrieved successfully',
+          statusCode: HttpStatus.OK,
+          success: true,
+          profile: profileDto,
+        } as BusinessProfileResponse;
+      } else {
+        const profileDto = this.mapToPublicDto(businessProfile);
+        return {
+          message: 'Business profile retrieved successfully',
+          statusCode: HttpStatus.OK,
+          success: true,
+          profile: profileDto,
+        } as PublicBusinessProfileResponse;
+      }
     } catch (error: any) {
-      this.logger.error(`Error fetching business profile: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error fetching business profile: ${error.message}`,
+        error.stack,
+      );
       return {
         message: 'Failed to fetch business profile',
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -213,17 +248,21 @@ export class BusinessProfileService {
   }
 
   @CreateRequestContext()
-  async getUserBusinessProfiles(userId: string): Promise<BusinessProfilesResponse> {
-    this.logger.log(`Fetching business profiles for user: ${userId}`);
+  async getVendorBusinessProfiles(
+    userId: string,
+  ): Promise<BusinessProfilesResponse> {
+    this.logger.log(`Fetching business profiles for vendor: ${userId}`);
 
     try {
       const businessProfiles = await this.em.find(
         BusinessProfile,
         { user: { id: userId } },
-        { populate: ['operatingTimes'] }
+        { populate: ['operatingTimes'] },
       );
 
-      const profileDtos = businessProfiles.map(profile => this.mapToDto(profile));
+      const profileDtos = businessProfiles.map((profile) =>
+        this.mapToDto(profile),
+      );
 
       return {
         message: 'Business profiles retrieved successfully',
@@ -233,7 +272,10 @@ export class BusinessProfileService {
         total: profileDtos.length,
       };
     } catch (error: any) {
-      this.logger.error(`Error fetching user business profiles: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error fetching vendor business profiles: ${error.message}`,
+        error.stack,
+      );
       return {
         message: 'Failed to fetch business profiles',
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -247,9 +289,10 @@ export class BusinessProfileService {
   @CreateRequestContext()
   async searchBusinessProfiles(
     data: SearchBusinessProfilesRequest,
-    userId?: string, // Optional: for future features like saving searches, favorites, etc.
   ): Promise<SearchBusinessProfilesResponse> {
-    this.logger.log(`Searching business profiles near (${data.latitude}, ${data.longitude}) for user: ${userId || 'anonymous'}`);
+    this.logger.log(
+      `Searching business profiles near (${data.latitude}, ${data.longitude})`,
+    );
 
     try {
       const radiusKm = data.radiusKm || 10;
@@ -293,7 +336,9 @@ export class BusinessProfileService {
       LIMIT ? OFFSET ?
     `;
 
-      this.logger.log(`Executing search query with radius: ${radiusKm}km, limit: ${limit}, offset: ${offset}`);
+      this.logger.log(
+        `Executing search query with radius: ${radiusKm}km, limit: ${limit}, offset: ${offset}`,
+      );
       const profiles = await this.em.getConnection().execute(query, params);
 
       // Count query parameters
@@ -315,33 +360,39 @@ export class BusinessProfileService {
         )
     `;
 
-      const countResult = await this.em.getConnection().execute(countQuery, countParams);
+      const countResult = await this.em
+        .getConnection()
+        .execute(countQuery, countParams);
       const total = parseInt(countResult[0]?.total || '0');
 
-      this.logger.log(`Found ${profiles.length} profiles out of ${total} total`);
+      this.logger.log(
+        `Found ${profiles.length} profiles out of ${total} total`,
+      );
 
       // Map results to DTOs
-      const profileDtos: BusinessProfileDistanceDto[] = profiles.map((p: any) => ({
-        id: p.id,
-        userId: p.user_id,
-        businessName: p.business_name,
-        industry: p.industry,
-        description: p.description,
-        location: {
-          placeId: p.place_id,
-          lat: parseFloat(p.latitude),
-          long: parseFloat(p.longitude),
-          stringAddress: p.string_address,
-        },
-        serviceModes: p.service_modes,
-        coverImageUrl: p.cover_image_url,
-        isThirdPartyVerified: p.is_third_party_verified,
-        isKycVerified: p.is_kyc_verified,
-        operatingTimes: [], // Can be populated if needed
-        createdAt: p.created_at,
-        updatedAt: p.updated_at,
-        distanceKm: Number(parseFloat(p.distance_km).toFixed(2)),
-      }));
+      const profileDtos: BusinessProfileDistanceDto[] = profiles.map(
+        (p: any) => ({
+          id: p.id,
+          userId: p.user_id,
+          businessName: p.business_name,
+          industry: p.industry,
+          description: p.description,
+          location: {
+            placeId: p.place_id,
+            lat: parseFloat(p.latitude),
+            long: parseFloat(p.longitude),
+            stringAddress: p.string_address,
+          },
+          serviceModes: p.service_modes,
+          coverImageUrl: p.cover_image_url,
+          isThirdPartyVerified: p.is_third_party_verified,
+          isKycVerified: p.is_kyc_verified,
+          operatingTimes: [], // Can be populated if needed
+          createdAt: p.created_at,
+          updatedAt: p.updated_at,
+          distanceKm: Number(parseFloat(p.distance_km).toFixed(2)),
+        }),
+      );
 
       return {
         message: 'Business profiles retrieved successfully',
@@ -351,7 +402,10 @@ export class BusinessProfileService {
         total,
       };
     } catch (error: any) {
-      this.logger.error(`Error searching business profiles: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error searching business profiles: ${error.message}`,
+        error.stack,
+      );
       return {
         message: 'Failed to search business profiles',
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
@@ -362,10 +416,9 @@ export class BusinessProfileService {
     }
   }
 
-
   private async updateOperatingTimes(
     businessProfile: BusinessProfile,
-    operatingTimesData: OperatingTimesInput
+    operatingTimesData: OperatingTimesInput,
   ): Promise<void> {
     const existingTimes = await this.em.find(OperatingTimes, {
       businessProfile: businessProfile,
@@ -416,6 +469,29 @@ export class BusinessProfileService {
         : [],
       createdAt: profile.createdAt ?? new Date(),
       updatedAt: profile.updatedAt ?? new Date(),
+    };
+  }
+
+  private mapToPublicDto(profile: BusinessProfile): PublicBusinessProfileDto {
+    return {
+      id: profile.id,
+      businessName: profile.businessName,
+      industry: profile.industry,
+      description: profile.description,
+      location: {
+        placeId: profile.placeId,
+        lat: profile.latitude,
+        long: profile.longitude,
+        stringAddress: profile.stringAddress,
+      },
+      serviceModes: profile.serviceModes,
+      coverImageUrl: profile.coverImageUrl,
+      isThirdPartyVerified: profile.isThirdPartyVerified,
+      isKycVerified: profile.isKycVerified,
+      operatingTimes: profile.operatingTimes
+        ? profile.operatingTimes.getItems().map(this.mapOperatingTimesToDto)
+        : [],
+      createdAt: profile.createdAt ?? new Date(),
     };
   }
 

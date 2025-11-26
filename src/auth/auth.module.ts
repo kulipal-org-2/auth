@@ -19,6 +19,8 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { SmileIdentityService } from './services/smile-identity.service';
 import { BusinessProfileService } from './services/business-profile.service';
 import { BusinessVerificationService } from './services/business-verification.service';
+import { GetProfileService } from './services/get-profile.service';
+import { UpdateProfileService } from './services/update-profile.service';
 
 @Module({
   imports: [
@@ -55,6 +57,8 @@ import { BusinessVerificationService } from './services/business-verification.se
     JwtAuthGuard,
     SmileIdentityService,
     BusinessVerificationService,
+    GetProfileService,
+    UpdateProfileService,
   ],
 })
-export class AuthModule { }
+export class AuthModule {}
