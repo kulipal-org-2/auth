@@ -14,13 +14,14 @@ import {
   type ValidateTokenResponse,
   type SendEmailOtpRequest,
   type SendSmsOtpRequest,
-  type ValidateEmailOtpRequest,
+  type ValidateOtpRequest,
   type ValidateOtpResponse,
-  type ValidateSmsOtpRequest,
   type MessageResponse as RMessageResponse,
   type RefreshTokenRequest,
   type ChangePasswordRequest,
   type ResetPasswordRequest,
+  type UpdateProfileRequest,
+  type ProfileResponse,
 } from './types/auth.type';
 import { LoginService } from './services/login.service';
 import { RefreshAccessTokenService } from './services/refresh-token.service';
@@ -35,7 +36,18 @@ import { RequestOtpService } from './services/request-otp.service';
 import { ValidateOtpService } from './services/validate-otp.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { BusinessProfileService } from './services/business-profile.service';
-import type { BusinessProfileResponse, BusinessProfilesResponse, CreateBusinessProfileRequest, GetBusinessProfileRequest, GetUserBusinessProfilesRequest, SearchBusinessProfilesRequest, SearchBusinessProfilesResponse, UpdateBusinessProfileRequest } from './types/business-profile.type';
+import type {
+  BusinessProfileResponse,
+  BusinessProfilesResponse,
+  CreateBusinessProfileRequest,
+  GetBusinessProfileRequest,
+  PublicBusinessProfileResponse,
+  SearchBusinessProfilesRequest,
+  SearchBusinessProfilesResponse,
+  UpdateBusinessProfileRequest,
+} from './types/business-profile.type';
+import { GetProfileService } from './services/get-profile.service';
+import { UpdateProfileService } from './services/update-profile.service';
 import { VerificationOrchestratorService } from 'src/smile-identity/services/verification-orchestrator.service';
 import { BusinessVerificationService } from 'src/smile-identity/services/kyb/business-verification.service';
 
@@ -95,10 +107,10 @@ export class AuthController {
     private readonly businessProfileService: BusinessProfileService,
     private readonly verificationOrchestratorService: VerificationOrchestratorService,
     private readonly jwtAuthGuard: JwtAuthGuard,
+    private readonly getProfileService: GetProfileService,
+    private readonly updateProfileService: UpdateProfileService,
     private readonly businessVerificationService: BusinessVerificationService,
-    // Remove EntityManager injection
-    // private readonly em: EntityManager,
-  ) { }
+  ) {}
 
   @GrpcMethod('AuthService', 'Login')
   login(data: LoginRequest): Promise<LoginResponse> {
@@ -165,22 +177,50 @@ export class AuthController {
     return this.requestOtpService.sendSmsOtp(data);
   }
 
-  @GrpcMethod('AuthService', 'ValidateEmailOtp')
-  validateEmailOtp(
-    data: ValidateEmailOtpRequest,
-  ): Promise<ValidateOtpResponse> {
-    return this.validateOtpService.validateEmailOtp(data);
+  @GrpcMethod('AuthService', 'ValidateOtp')
+  validateOtp(data: ValidateOtpRequest): Promise<ValidateOtpResponse> {
+    return this.validateOtpService.validateOtp(data);
   }
 
-  @GrpcMethod('AuthService', 'ValidateSmsOtp')
-  validateSmsOtp(data: ValidateSmsOtpRequest): Promise<ValidateOtpResponse> {
-    return this.validateOtpService.validateSmsOtp(data);
+  @GrpcMethod('AuthService', 'GetProfile')
+  async getProfile(_data: {}, metadata: Metadata): Promise<ProfileResponse> {
+    const authResult = this.jwtAuthGuard.validateToken(metadata);
+
+    if (!authResult.success) {
+      return {
+        message: authResult.message,
+        statusCode: 401,
+        success: false,
+        user: null,
+      };
+    }
+
+    return this.getProfileService.execute(authResult.userId);
+  }
+
+  @GrpcMethod('AuthService', 'UpdateProfile')
+  async updateProfile(
+    data: UpdateProfileRequest,
+    metadata: Metadata,
+  ): Promise<ProfileResponse> {
+    const authResult = this.jwtAuthGuard.validateToken(metadata);
+
+    if (!authResult.success) {
+      return {
+        message: authResult.message,
+        statusCode: 401,
+        success: false,
+        user: null,
+      };
+    }
+
+    return this.updateProfileService.execute(authResult.userId, data);
   }
 
   @GrpcMethod('AuthService', 'CreateBusinessProfile')
   async createBusinessProfile(
     data: CreateBusinessProfileRequest,
-    metadata: Metadata
+    metadata: Metadata,
   ): Promise<BusinessProfileResponse> {
     const authResult = this.jwtAuthGuard.validateToken(metadata);
 
@@ -193,14 +233,16 @@ export class AuthController {
       };
     }
 
-    // Just call the service - the service will handle the user verification status
-    return await this.businessProfileService.createBusinessProfile(authResult.userId, data);
+    return this.businessProfileService.createBusinessProfile(
+      authResult.userId,
+      data,
+    );
   }
 
   @GrpcMethod('AuthService', 'UpdateBusinessProfile')
   async updateBusinessProfile(
     data: UpdateBusinessProfileRequest,
-    metadata: Metadata
+    metadata: Metadata,
   ): Promise<BusinessProfileResponse> {
     const authResult = this.jwtAuthGuard.validateToken(metadata);
 
@@ -213,13 +255,16 @@ export class AuthController {
       };
     }
 
-    return this.businessProfileService.updateBusinessProfile(authResult.userId, data);
+    return this.businessProfileService.updateBusinessProfile(
+      authResult.userId,
+      data,
+    );
   }
 
   @GrpcMethod('AuthService', 'GetBusinessProfile')
   async getBusinessProfile(
     data: GetBusinessProfileRequest,
-    metadata: Metadata
+    metadata: Metadata,
   ): Promise<BusinessProfileResponse> {
     const authResult = this.jwtAuthGuard.validateToken(metadata);
 
@@ -232,16 +277,25 @@ export class AuthController {
       };
     }
 
-    return this.businessProfileService.getBusinessProfile(
+    const result = await this.businessProfileService.getBusinessProfile(
       data,
-      authResult.userId
+      authResult.userId,
     );
+    return result as BusinessProfileResponse;
   }
 
-  @GrpcMethod('AuthService', 'GetUserBusinessProfiles')
-  async getUserBusinessProfiles(
-    data: GetUserBusinessProfilesRequest,
-    metadata: Metadata
+  @GrpcMethod('AuthService', 'GetPublicBusinessProfile')
+  async getPublicBusinessProfile(
+    data: GetBusinessProfileRequest,
+  ): Promise<PublicBusinessProfileResponse> {
+    const result = await this.businessProfileService.getBusinessProfile(data);
+    return result as PublicBusinessProfileResponse;
+  }
+
+  @GrpcMethod('AuthService', 'GetVendorBusinessProfiles')
+  async getVendorBusinessProfiles(
+    _data: {},
+    metadata: Metadata,
   ): Promise<BusinessProfilesResponse> {
     const authResult = this.jwtAuthGuard.validateToken(metadata);
 
@@ -255,29 +309,18 @@ export class AuthController {
       };
     }
 
-    return this.businessProfileService.getUserBusinessProfiles(authResult.userId);
+    return this.businessProfileService.getVendorBusinessProfiles(
+      authResult.userId,
+    );
   }
 
   @GrpcMethod('AuthService', 'SearchBusinessProfiles')
   async searchBusinessProfiles(
     data: SearchBusinessProfilesRequest,
-    metadata: Metadata,
   ): Promise<SearchBusinessProfilesResponse> {
-    const authResult = this.jwtAuthGuard.validateToken(metadata);
-
-    if (!authResult.success) {
-      return {
-        message: authResult.message,
-        statusCode: 401,
-        success: false,
-        profiles: [],
-        total: 0,
-      };
-    }
-    return this.businessProfileService.searchBusinessProfiles(data, authResult.userId);
+    return this.businessProfileService.searchBusinessProfiles(data);
   }
 
-  // NEW: Identity Verification Methods
   @GrpcMethod('AuthService', 'InitiateIdentityVerification')
   async initiateIdentityVerification(
     data: InitiateIdentityVerificationRequest,
@@ -309,12 +352,13 @@ export class AuthController {
         };
       }
 
-      const result = await this.verificationOrchestratorService.initiateVerification(
-        authResult.userId,
-        data.verificationType,
-        verificationData,
-        data.businessProfileId,
-      );
+      const result =
+        await this.verificationOrchestratorService.initiateVerification(
+          authResult.userId,
+          data.verificationType,
+          verificationData,
+          data.businessProfileId,
+        );
 
       return {
         message: result.message,
@@ -351,7 +395,10 @@ export class AuthController {
     }
 
     try {
-      const status = await this.verificationOrchestratorService.getUserVerificationStatus(authResult.userId);
+      const status =
+        await this.verificationOrchestratorService.getUserVerificationStatus(
+          authResult.userId,
+        );
 
       return {
         message: 'Verification status retrieved successfully',

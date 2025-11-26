@@ -18,6 +18,8 @@ import { join } from 'path';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { SmileIdentityService } from './services/smile-identity.service';
 import { BusinessProfileService } from './services/business-profile.service';
+import { GetProfileService } from './services/get-profile.service';
+import { UpdateProfileService } from './services/update-profile.service';
 import { VerificationOrchestratorService } from 'src/smile-identity/services/verification-orchestrator.service';
 import { KycService } from 'src/smile-identity/services/kyc/kyc.service';
 import { KybService } from 'src/smile-identity/services/kyb/kyb.service';
@@ -58,11 +60,13 @@ import { BusinessVerificationService } from 'src/smile-identity/services/kyb/bus
     BusinessProfileService,
     JwtAuthGuard,
     SmileIdentityService,
+    GetProfileService,
+    UpdateProfileService,
     SmileCoreService,
     KycService,
     KybService,
     VerificationOrchestratorService,
-    BusinessVerificationService
+    BusinessVerificationService,
   ],
 })
-export class AuthModule { }
+export class AuthModule {}

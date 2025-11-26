@@ -8,7 +8,7 @@ export interface CreateBusinessProfileRequest {
     long: number;
     stringAddress: string;
   };
-  serviceModes: ('DELIVERY' | 'PICKUP' | 'DINE_IN')[];
+  serviceModes: ('DELIVERY' | 'PICK_UP' | 'DINE_IN')[];
   coverImageUrl?: string;
   operatingTimes?: OperatingTimesInput;
 }
@@ -24,17 +24,13 @@ export interface UpdateBusinessProfileRequest {
     long: number;
     stringAddress: string;
   };
-  serviceModes?: ('DELIVERY' | 'PICKUP' | 'DINE_IN')[];
+  serviceModes?: ('DELIVERY' | 'PICK_UP' | 'DINE_IN')[];
   coverImageUrl?: string;
   operatingTimes?: OperatingTimesInput;
 }
 
 export interface GetBusinessProfileRequest {
   businessProfileId: string;
-}
-
-export interface GetUserBusinessProfilesRequest {
-  // userId extracted from auth header
 }
 
 export interface SearchBusinessProfilesRequest {
@@ -85,11 +81,37 @@ export interface BusinessProfileDto {
   updatedAt: Date;
 }
 
+export interface PublicBusinessProfileDto {
+  id: string;
+  businessName: string;
+  industry: string;
+  description?: string;
+  location: {
+    placeId?: string;
+    lat: number;
+    long: number;
+    stringAddress: string;
+  };
+  serviceModes: string[];
+  coverImageUrl?: string;
+  isThirdPartyVerified?: boolean;
+  isKycVerified?: boolean;
+  operatingTimes: OperatingTimesDto[];
+  createdAt: Date;
+}
+
 export interface BusinessProfileResponse {
   message: string;
   statusCode: number;
   success: boolean;
   profile: BusinessProfileDto | null;
+}
+
+export interface PublicBusinessProfileResponse {
+  message: string;
+  statusCode: number;
+  success: boolean;
+  profile: PublicBusinessProfileDto | null;
 }
 
 export interface BusinessProfilesResponse {

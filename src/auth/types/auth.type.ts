@@ -39,6 +39,7 @@ export type RegisteredUser = {
   userType: UserType;
   isEmailVerified: boolean;
   isPhoneVerified: boolean;
+  avatarUrl?: string;
   source?: string;
   // CHANGED: Now returns ALL business profiles as an array
   businessProfiles?: BusinessProfileSummary[];
@@ -144,6 +145,19 @@ export type ResetPasswordRequest = {
   token: string;
   email: string;
   newPassword: string;
+};
+
+export type UpdateProfileRequest = {
+  firstName?: string;
+  lastName?: string;
+  avatarUrl?: string;
+};
+
+export type ProfileResponse = {
+  message: string;
+  statusCode: number;
+  success: boolean;
+  user: RegisteredUser | null;
 };
 
 export type MessageResponse = {

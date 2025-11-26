@@ -36,8 +36,8 @@ export class NotificationService implements OnModuleInit {
     validityMinutes: number;
   }): Promise<void> {
     if (!this.notificationClient) {
-      this.logger.warn('Notification service client is not available');
-      return;
+      this.logger.error('Notification service client is not available');
+      throw new Error('Notification service is unavailable');
     }
 
     const expiryMinutes = validityMinutes.toString();
@@ -77,6 +77,8 @@ export class NotificationService implements OnModuleInit {
       this.logger.error(
         `Failed to dispatch OTP via ${otpChannel} for user ${user.id}: ${error?.message ?? error}`,
       );
+      // Re-throw the error so the caller can handle it appropriately
+      throw error;
     }
   }
 
@@ -90,8 +92,8 @@ export class NotificationService implements OnModuleInit {
     expiryMinutes: number;
   }): Promise<void> {
     if (!this.notificationClient) {
-      this.logger.warn('Notification service client is not available');
-      return;
+      this.logger.error('Notification service client is not available');
+      throw new Error('Notification service is unavailable');
     }
 
     try {
@@ -114,6 +116,8 @@ export class NotificationService implements OnModuleInit {
       this.logger.error(
         `Failed to dispatch password reset email for user ${user.id}: ${error?.message ?? error}`,
       );
+      // Re-throw the error so the caller can handle it appropriately
+      throw error;
     }
   }
 }

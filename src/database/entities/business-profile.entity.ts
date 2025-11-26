@@ -1,12 +1,20 @@
-import { Collection, Entity, EntityRepositoryType, Index, ManyToOne, OneToMany, Property } from "@mikro-orm/postgresql";
-import { CustomBaseEntity } from "./base.entity";
-import { User } from "./user.entity";
-import { BusinessProfileRepository } from "../repositories/business-profile.repository";
-import { OperatingTimes } from "./operating-times.entity";
-import { BusinessVerification } from "./business-verification.entity";
+import {
+  Collection,
+  Entity,
+  EntityRepositoryType,
+  Index,
+  ManyToOne,
+  OneToMany,
+  Property,
+} from '@mikro-orm/postgresql';
+import { CustomBaseEntity } from './base.entity';
+import { User } from './user.entity';
+import { BusinessProfileRepository } from '../repositories/business-profile.repository';
+import { OperatingTimes } from './operating-times.entity';
+import { BusinessVerification } from './business-verification.entity';
 
 export type Industry = 'FOOD' | 'EVENTS' | 'HOUSING';
-export type ServiceMode = 'DELIVERY' | 'PICKUP' | 'DINE_IN';
+export type ServiceMode = 'DELIVERY' | 'PICK_UP' | 'DINE_IN';
 
 @Entity({ repository: () => BusinessProfileRepository })
 export class BusinessProfile extends CustomBaseEntity {
@@ -36,7 +44,11 @@ export class BusinessProfile extends CustomBaseEntity {
   @Property()
   stringAddress!: string;
 
-  @Property({ type: 'geography', columnType: 'geography(Point, 4326)', nullable: true })
+  @Property({
+    type: 'geography',
+    columnType: 'geography(Point, 4326)',
+    nullable: true,
+  })
   @Index({ type: 'gist' })
   location?: string;
 
@@ -52,9 +64,14 @@ export class BusinessProfile extends CustomBaseEntity {
   @Property({ default: false })
   isKycVerified?: boolean = false;
 
-  @OneToMany(() => OperatingTimes, (times) => times.businessProfile, { orphanRemoval: true })
+  @OneToMany(() => OperatingTimes, (times) => times.businessProfile, {
+    orphanRemoval: true,
+  })
   operatingTimes = new Collection<OperatingTimes>(this);
 
-  @OneToMany(() => BusinessVerification, (verification) => verification.businessProfile)
+  @OneToMany(
+    () => BusinessVerification,
+    (verification) => verification.businessProfile,
+  )
   verifications = new Collection<BusinessVerification>(this);
 }

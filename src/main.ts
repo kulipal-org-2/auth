@@ -10,16 +10,15 @@ async function bootstrap() {
   app.connectMicroservice({
     transport: Transport.GRPC,
     options: {
-      package: ['auth', 'imageupload'],
-      protoPath: [join(__dirname, 'proto/auth.proto'),
-      join(__dirname, 'proto/image-upload.proto')],
+      package: ['auth'],
+      protoPath: [join(__dirname, 'proto/auth.proto')],
       url: process.env.URL,
     },
   });
 
   app.useGlobalFilters(new ExceptionsFilter());
-
   app.enableShutdownHooks();
+
   await app.startAllMicroservices();
 
   await app.listen(process.env.APP_PORT ?? 5000);

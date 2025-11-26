@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "google/protobuf/empty.proto";
+
 package auth;
 
 service AuthService {
@@ -14,12 +16,14 @@ service AuthService {
   rpc ChangePassword (ChangePasswordDto) returns (MessageResponse) {}
   rpc SendEmailOtp (SendEmailOtpDto) returns (MessageResponse) {}
   rpc SendSmsOtp (SendSmsOtpDto) returns (MessageResponse) {}
-  rpc ValidateEmailOtp (ValidateEmailOtpDto) returns (ValidateOtpResponse) {}
-  rpc ValidateSmsOtp (ValidateSmsOtpDto) returns (ValidateOtpResponse) {}
+  rpc ValidateOtp (ValidateOtpDto) returns (ValidateOtpResponse) {}
+  rpc GetProfile (google.protobuf.Empty) returns (ProfileResponse) {}
+  rpc UpdateProfile (UpdateProfileDto) returns (ProfileResponse) {}
   rpc CreateBusinessProfile (CreateBusinessProfileDto) returns (BusinessProfileResponse) {}
   rpc UpdateBusinessProfile (UpdateBusinessProfileDto) returns (BusinessProfileResponse) {}
   rpc GetBusinessProfile (GetBusinessProfileDto) returns (BusinessProfileResponse) {}
-  rpc GetUserBusinessProfiles (GetUserBusinessProfilesDto) returns (BusinessProfilesResponse) {}
+  rpc GetPublicBusinessProfile (GetBusinessProfileDto) returns (PublicBusinessProfileResponse) {}
+  rpc GetVendorBusinessProfiles (google.protobuf.Empty) returns (BusinessProfilesResponse) {}
   rpc SearchBusinessProfiles (SearchBusinessProfilesDto) returns (SearchBusinessProfilesResponse) {}
   rpc InitiateIdentityVerification (InitiateIdentityVerificationDto) returns (IdentityVerificationResponse) {}
   rpc GetUserVerificationStatus (GetUserVerificationStatusDto) returns (GetUserVerificationStatusResponse) {}
@@ -31,8 +35,8 @@ message LoginDto {
 }
 
 message RefreshTokenDto {
-  string userId = 1;
-  string refreshToken = 2;
+    string userId = 1;
+    string refreshToken = 2;
 }
 
 message RegisterDto {
@@ -82,14 +86,17 @@ message SendSmsOtpDto {
   string phoneNumber = 1;
 }
 
-message ValidateEmailOtpDto {
-  string email = 1;
-  string token = 2;
+message ValidateOtpDto {
+  optional string email = 1;
+  optional string phoneNumber = 2;
+  string token = 3;
 }
 
-message ValidateSmsOtpDto {
-  string phoneNumber = 1;
-  string token = 2;
+
+message UpdateProfileDto {
+  optional string firstName = 1;
+  optional string lastName = 2;
+  optional string avatarUrl = 3;
 }
 
 message BusinessProfileSummaryDto {
@@ -115,10 +122,11 @@ message UserDto {
   string userType = 6;
   bool isEmailVerified = 7;
   bool isPhoneVerified = 8;
-  optional string source = 9;
-  repeated BusinessProfileSummaryDto businessProfiles = 10;
-  bool isIdentityVerified = 11;
-  optional string identityVerificationType = 12;
+  optional string avatarUrl = 9;
+  optional string source = 10;
+  repeated BusinessProfileSummaryDto businessProfiles = 11;
+  bool isIdentityVerified = 12;
+  optional string identityVerificationType = 13;
 }
 message MessageResponse {
   string message = 1;
@@ -167,6 +175,13 @@ message ValidateOtpResponse {
   UserDto user = 6;
 }
 
+message ProfileResponse {
+  string message = 1;
+  int32 statusCode = 2;
+  bool success = 3;
+  UserDto user = 4;
+}
+
 message LocationDto {
   string placeId = 1;
   double lat = 2;
@@ -213,6 +228,20 @@ message BusinessProfileDto {
   string updatedAt = 13;
 }
 
+message PublicBusinessProfileDto {
+  string id = 1;
+  string businessName = 2;
+  string industry = 3;
+  string description = 4;
+  LocationDto location = 5;
+  repeated string serviceModes = 6;
+  string coverImageUrl = 7;
+  bool isThirdPartyVerified = 8;
+  bool isKycVerified = 9;
+  repeated OperatingTimesDto operatingTimes = 10;
+  string createdAt = 11;
+}
+
 message CreateBusinessProfileDto {
   string businessName = 1;
   string industry = 2;
@@ -238,15 +267,18 @@ message GetBusinessProfileDto {
   string businessProfileId = 1;
 }
 
-message GetUserBusinessProfilesDto {
-  // userId extracted from auth header
-}
-
 message BusinessProfileResponse {
   string message = 1;
   int32 statusCode = 2;
   bool success = 3;
   BusinessProfileDto profile = 4;
+}
+
+message PublicBusinessProfileResponse {
+  string message = 1;
+  int32 statusCode = 2;
+  bool success = 3;
+  PublicBusinessProfileDto profile = 4;
 }
 
 message BusinessProfilesResponse {

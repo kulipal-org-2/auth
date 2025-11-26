@@ -26,10 +26,25 @@ export class ExceptionsFilter implements ExceptionFilter {
       message: 'Something went wrong. Please try again later.',
     };
 
-    // If exception is RpcException, extract its message safely
+    // If exception is RpcException, extract its details safely
     if (exception instanceof RpcException) {
       const error = exception.getError();
-      return { message: error, success: false };
+
+      // If error is an object with statusCode, preserve it
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'statusCode' in error
+      ) {
+        return error;
+      }
+
+      // Otherwise, return as message string
+      return {
+        message: typeof error === 'string' ? error : 'Authentication failed',
+        statusCode: 401,
+        success: false,
+      };
     }
 
     // Otherwise, respond gracefully only if it’s a request-response pattern
