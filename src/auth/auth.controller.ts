@@ -1,3 +1,4 @@
+// src/auth/auth.controller.ts
 import { Controller } from '@nestjs/common';
 import { GrpcMethod } from '@nestjs/microservices';
 import type { Metadata } from '@grpc/grpc-js';
@@ -33,10 +34,50 @@ import { ChangePasswordService } from './services/change-password.service';
 import { RequestOtpService } from './services/request-otp.service';
 import { ValidateOtpService } from './services/validate-otp.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import type { AdminReviewVerificationRequest, AdminReviewVerificationResponse, GetVerificationStatusRequest, GetVerificationStatusResponse, InitiateVerificationRequest, InitiateVerificationResponse, SubmitVerificationRequest, SubmitVerificationResponse } from './types/business-verification.type';
 import { BusinessProfileService } from './services/business-profile.service';
-import { BusinessVerificationService } from './services/business-verification.service';
 import type { BusinessProfileResponse, BusinessProfilesResponse, CreateBusinessProfileRequest, GetBusinessProfileRequest, GetUserBusinessProfilesRequest, SearchBusinessProfilesRequest, SearchBusinessProfilesResponse, UpdateBusinessProfileRequest } from './types/business-profile.type';
+import { VerificationOrchestratorService } from 'src/smile-identity/services/verification-orchestrator.service';
+import { BusinessVerificationService } from 'src/smile-identity/services/kyb/business-verification.service';
+
+interface InitiateIdentityVerificationRequest {
+  verificationType: 'KYC' | 'KYB';
+  businessProfileId?: string;
+  kycData?: {
+    idType: string;
+    idNumber: string;
+    firstName?: string;
+    lastName?: string;
+    dob?: string;
+  };
+  kybData?: {
+    registrationNumber: string;
+    businessType: string;
+    businessName?: string;
+  };
+}
+
+interface IdentityVerificationResponse {
+  message: string;
+  statusCode: number;
+  success: boolean;
+  alreadyVerified: boolean;
+  verificationType?: string;
+  smileJobId?: string;
+}
+
+interface GetUserVerificationStatusRequest {
+  // userId will be extracted from auth token
+}
+
+interface GetUserVerificationStatusResponse {
+  message: string;
+  statusCode: number;
+  success: boolean;
+  isIdentityVerified: boolean;
+  identityVerificationType?: string;
+  identityVerifiedAt?: string;
+  lastVerificationId?: string;
+}
 
 @Controller('auth')
 export class AuthController {
@@ -52,8 +93,11 @@ export class AuthController {
     private readonly requestOtpService: RequestOtpService,
     private readonly validateOtpService: ValidateOtpService,
     private readonly businessProfileService: BusinessProfileService,
-    private readonly businessVerificationService: BusinessVerificationService,
+    private readonly verificationOrchestratorService: VerificationOrchestratorService,
     private readonly jwtAuthGuard: JwtAuthGuard,
+    private readonly businessVerificationService: BusinessVerificationService,
+    // Remove EntityManager injection
+    // private readonly em: EntityManager,
   ) { }
 
   @GrpcMethod('AuthService', 'Login')
@@ -149,7 +193,8 @@ export class AuthController {
       };
     }
 
-    return this.businessProfileService.createBusinessProfile(authResult.userId, data);
+    // Just call the service - the service will handle the user verification status
+    return await this.businessProfileService.createBusinessProfile(authResult.userId, data);
   }
 
   @GrpcMethod('AuthService', 'UpdateBusinessProfile')
@@ -232,11 +277,12 @@ export class AuthController {
     return this.businessProfileService.searchBusinessProfiles(data, authResult.userId);
   }
 
-  @GrpcMethod('AuthService', 'InitiateBusinessVerification')
-  async initiateBusinessVerification(
-    data: InitiateVerificationRequest,
-    metadata: Metadata
-  ): Promise<InitiateVerificationResponse> {
+  // NEW: Identity Verification Methods
+  @GrpcMethod('AuthService', 'InitiateIdentityVerification')
+  async initiateIdentityVerification(
+    data: InitiateIdentityVerificationRequest,
+    metadata: Metadata,
+  ): Promise<IdentityVerificationResponse> {
     const authResult = this.jwtAuthGuard.validateToken(metadata);
 
     if (!authResult.success) {
@@ -244,19 +290,55 @@ export class AuthController {
         message: authResult.message,
         statusCode: 401,
         success: false,
-        token: null,
-        jobId: null,
+        alreadyVerified: false,
       };
     }
 
-    return this.businessVerificationService.initiateVerification(authResult.userId, data);
+    try {
+      let verificationData;
+      if (data.verificationType === 'KYC' && data.kycData) {
+        verificationData = data.kycData;
+      } else if (data.verificationType === 'KYB' && data.kybData) {
+        verificationData = data.kybData;
+      } else {
+        return {
+          message: 'Invalid verification data',
+          statusCode: 400,
+          success: false,
+          alreadyVerified: false,
+        };
+      }
+
+      const result = await this.verificationOrchestratorService.initiateVerification(
+        authResult.userId,
+        data.verificationType,
+        verificationData,
+        data.businessProfileId,
+      );
+
+      return {
+        message: result.message,
+        statusCode: result.success ? 200 : 400,
+        success: result.success,
+        alreadyVerified: result.skipVerification || false,
+        verificationType: data.verificationType,
+        smileJobId: result.smileJobId,
+      };
+    } catch (error: any) {
+      return {
+        message: error.message || 'Verification initiation failed',
+        statusCode: 500,
+        success: false,
+        alreadyVerified: false,
+      };
+    }
   }
 
-  @GrpcMethod('AuthService', 'SubmitBusinessVerification')
-  async submitBusinessVerification(
-    data: SubmitVerificationRequest,
-    metadata: Metadata
-  ): Promise<SubmitVerificationResponse> {
+  @GrpcMethod('AuthService', 'GetUserVerificationStatus')
+  async getUserVerificationStatus(
+    data: GetUserVerificationStatusRequest,
+    metadata: Metadata,
+  ): Promise<GetUserVerificationStatusResponse> {
     const authResult = this.jwtAuthGuard.validateToken(metadata);
 
     if (!authResult.success) {
@@ -264,49 +346,29 @@ export class AuthController {
         message: authResult.message,
         statusCode: 401,
         success: false,
-        verificationId: null,
+        isIdentityVerified: false,
       };
     }
 
-    return this.businessVerificationService.submitVerification(authResult.userId, data);
-  }
+    try {
+      const status = await this.verificationOrchestratorService.getUserVerificationStatus(authResult.userId);
 
-  @GrpcMethod('AuthService', 'GetBusinessVerificationStatus')
-  async getBusinessVerificationStatus(
-    data: GetVerificationStatusRequest,
-    metadata: Metadata
-  ): Promise<GetVerificationStatusResponse> {
-    const authResult = this.jwtAuthGuard.validateToken(metadata);
-
-    if (!authResult.success) {
       return {
-        message: authResult.message,
-        statusCode: 401,
-        success: false,
-        isThirdPartyVerified: false,
-        isKycVerified: false,
-        verifications: [],
+        message: 'Verification status retrieved successfully',
+        statusCode: 200,
+        success: true,
+        isIdentityVerified: status.isIdentityVerified,
+        identityVerificationType: status.identityVerificationType,
+        identityVerifiedAt: status.identityVerifiedAt?.toISOString(),
+        lastVerificationId: status.lastVerificationId,
       };
-    }
-
-    return this.businessVerificationService.getVerificationStatus(authResult.userId, data);
-  }
-
-  @GrpcMethod('AuthService', 'AdminReviewBusinessVerification')
-  async adminReviewBusinessVerification(
-    data: AdminReviewVerificationRequest,
-    metadata: Metadata
-  ): Promise<AdminReviewVerificationResponse> {
-    const authResult = this.jwtAuthGuard.validateToken(metadata);
-
-    if (!authResult.success) {
+    } catch (error: any) {
       return {
-        message: authResult.message,
-        statusCode: 401,
+        message: error.message || 'Failed to get verification status',
+        statusCode: 500,
         success: false,
+        isIdentityVerified: false,
       };
     }
-
-    return this.businessVerificationService.adminReviewVerification(authResult.userId, data);
   }
 }
