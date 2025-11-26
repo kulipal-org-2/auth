@@ -1,10 +1,11 @@
+// src/auth/services/refresh-token.service.ts
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { CustomLogger as Logger } from 'kulipal-shared';
 import { createHash, randomBytes } from 'crypto';
 import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
-import { RefreshToken, User } from 'src/database';
-import type { LoginResponse, RefreshTokenRequest, RegisteredUser } from '../types/auth.type';
+import { RefreshToken, User, BusinessProfile } from 'src/database';
+import type { LoginResponse, RefreshTokenRequest, RegisteredUser, BusinessProfileSummary } from '../types/auth.type';
 
 @Injectable()
 export class RefreshAccessTokenService {
@@ -13,7 +14,7 @@ export class RefreshAccessTokenService {
   constructor(
     private readonly em: EntityManager,
     private readonly jwtService: JwtService,
-  ) {}
+  ) { }
 
   @CreateRequestContext()
   async execute(data: RefreshTokenRequest): Promise<LoginResponse> {
@@ -72,6 +73,37 @@ export class RefreshAccessTokenService {
     const user = await this.em.findOne(User, { id: userId });
     let userPayload: RegisteredUser | null = null;
     if (user) {
+      // Fetch ALL business profiles if user is a vendor
+      let businessProfiles: BusinessProfileSummary[] = [];
+      if (user.userType === 'vendor') {
+        const profiles = await this.em.find(
+          BusinessProfile,
+          { user: user.id },
+          { orderBy: { createdAt: 'DESC' } }
+        );
+
+        if (profiles && profiles.length > 0) {
+          businessProfiles = profiles.map(profile => ({
+            id: profile.id,
+            businessName: profile.businessName,
+            industry: profile.industry,
+            isThirdPartyVerified: profile.isThirdPartyVerified ?? false,
+            isKycVerified: profile.isKycVerified ?? false,
+            coverImageUrl: profile.coverImageUrl,
+            description: profile.description,
+            serviceModes: profile.serviceModes,
+            location: {
+              placeId: profile.placeId,
+              lat: profile.latitude,
+              long: profile.longitude,
+              stringAddress: profile.stringAddress,
+            },
+            createdAt: profile.createdAt,
+            updatedAt: profile.updatedAt,
+          }));
+        }
+      }
+
       userPayload = {
         id: user.id,
         firstName: user.firstName,
@@ -82,6 +114,9 @@ export class RefreshAccessTokenService {
         isEmailVerified: Boolean(user.isEmailVerified),
         isPhoneVerified: Boolean(user.isPhoneVerified),
         source: user.source ?? undefined,
+        businessProfiles, // Now returns ALL business profiles
+        isIdentityVerified: user.isIdentityVerified ?? false,
+        identityVerificationType: user.identityVerificationType,
       };
     }
 

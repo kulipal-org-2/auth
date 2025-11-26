@@ -1,3 +1,4 @@
+// src/auth/types/auth.type.ts
 import type { UserType } from 'src/database/entities/user.entity';
 
 export type RegisterRequest = {
@@ -10,6 +11,25 @@ export type RegisterRequest = {
   phoneNumber: string;
 };
 
+export type BusinessProfileSummary = {
+  id: string;
+  businessName: string;
+  industry: string;
+  isThirdPartyVerified: boolean;
+  isKycVerified: boolean;
+  coverImageUrl?: string;
+  description?: string;
+  serviceModes: string[];
+  location: {
+    placeId?: string;
+    lat: number;
+    long: number;
+    stringAddress: string;
+  };
+  createdAt?: Date;
+  updatedAt?: Date;
+};
+
 export type RegisteredUser = {
   id: string;
   firstName: string;
@@ -20,15 +40,11 @@ export type RegisteredUser = {
   isEmailVerified: boolean;
   isPhoneVerified: boolean;
   source?: string;
-  businessProfile?: BusinessProfileSummary;
-};
-export type BusinessProfileSummary = {
-  id: string;
-  businessName: string;
-  industry: string;
-  isThirdPartyVerified: boolean;
-  isKycVerified: boolean;
-  coverImageUrl?: string;
+  // CHANGED: Now returns ALL business profiles as an array
+  businessProfiles?: BusinessProfileSummary[];
+  // NEW: Include user verification status
+  isIdentityVerified?: boolean;
+  identityVerificationType?: 'KYC' | 'KYB';
 };
 
 export type RefreshTokenRequest = {
