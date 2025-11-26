@@ -10,8 +10,9 @@ async function bootstrap() {
   app.connectMicroservice({
     transport: Transport.GRPC,
     options: {
-      package: 'auth',
-      protoPath: [join(__dirname, 'proto/auth.proto')],
+      package: ['auth', 'imageupload'],
+      protoPath: [join(__dirname, 'proto/auth.proto'),
+      join(__dirname, 'proto/image-upload.proto')],
       url: process.env.URL,
     },
   });

@@ -18,9 +18,13 @@ import { join } from 'path';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { SmileIdentityService } from './services/smile-identity.service';
 import { BusinessProfileService } from './services/business-profile.service';
-import { BusinessVerificationService } from './services/business-verification.service';
 import { GetProfileService } from './services/get-profile.service';
 import { UpdateProfileService } from './services/update-profile.service';
+import { VerificationOrchestratorService } from 'src/smile-identity/services/verification-orchestrator.service';
+import { KycService } from 'src/smile-identity/services/kyc/kyc.service';
+import { KybService } from 'src/smile-identity/services/kyb/kyb.service';
+import { SmileCoreService } from 'src/smile-identity/services/smile-core.service';
+import { BusinessVerificationService } from 'src/smile-identity/services/kyb/business-verification.service';
 
 @Module({
   imports: [
@@ -56,9 +60,13 @@ import { UpdateProfileService } from './services/update-profile.service';
     BusinessProfileService,
     JwtAuthGuard,
     SmileIdentityService,
-    BusinessVerificationService,
     GetProfileService,
     UpdateProfileService,
+    SmileCoreService,
+    KycService,
+    KybService,
+    VerificationOrchestratorService,
+    BusinessVerificationService,
   ],
 })
 export class AuthModule {}

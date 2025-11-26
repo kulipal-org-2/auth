@@ -51,6 +51,11 @@ export class BusinessProfileService {
         };
       }
 
+      // Auto-apply user verification status to business profile
+      const isUserVerified = user.isIdentityVerified ?? false;
+
+      this.logger.log(`User verification status: ${isUserVerified} for user: ${userId}`);
+
       const businessProfile = this.em.create(BusinessProfile, {
         user: user,
         businessName: data.businessName,
@@ -63,6 +68,9 @@ export class BusinessProfileService {
         location: `POINT(${data.location.long} ${data.location.lat})`,
         serviceModes: data.serviceModes,
         coverImageUrl: data.coverImageUrl,
+        // Apply user's verification status to the business profile
+        isThirdPartyVerified: isUserVerified,
+        isKycVerified: isUserVerified,
       });
 
       await this.em.persistAndFlush(businessProfile);
@@ -80,7 +88,12 @@ export class BusinessProfileService {
         statusCode: HttpStatus.CREATED,
         success: true,
         profile: profileDto,
-      };
+        // Include user verification status in response
+        userVerificationStatus: {
+          isIdentityVerified: isUserVerified,
+          identityVerificationType: user.identityVerificationType,
+        },
+      } as any; // Cast to any to include the additional field
     } catch (error: any) {
       this.logger.error(
         `Error creating business profile: ${error.message}`,
@@ -125,6 +138,13 @@ export class BusinessProfileService {
           success: false,
           profile: null,
         };
+      }
+
+      // Check if user verification status has changed and update business profile accordingly
+      const user = await this.em.findOne(User, { id: userId });
+      if (user && user.isIdentityVerified) {
+        businessProfile.isThirdPartyVerified = true;
+        businessProfile.isKycVerified = true;
       }
 
       if (data.businessName !== undefined) {
