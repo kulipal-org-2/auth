@@ -75,8 +75,26 @@ export class ChangePasswordService {
         success: true,
       };
     } catch (error) {
-      this.logger.error('Change password failed', error as any);
-      console.error(error);
+      this.logger.error('Change password failed');
+      this.logger.error((error as Error).message);
+
+      // Handle JWT-specific errors
+      if ((error as Error).name === 'TokenExpiredError') {
+        return {
+          message: 'Session expired. Please login again.',
+          statusCode: HttpStatus.UNAUTHORIZED,
+          success: false,
+        };
+      }
+
+      if ((error as Error).name === 'JsonWebTokenError') {
+        return {
+          message: 'Invalid token. Please login again.',
+          statusCode: HttpStatus.UNAUTHORIZED,
+          success: false,
+        };
+      }
+
       return {
         message: 'Internal error while changing password',
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,

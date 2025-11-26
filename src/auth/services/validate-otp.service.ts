@@ -3,9 +3,8 @@ import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { Otp } from 'src/database/entities/otp.entity';
 import { User } from 'src/database';
 import type {
-  ValidateEmailOtpRequest,
+  ValidateOtpRequest,
   ValidateOtpResponse,
-  ValidateSmsOtpRequest,
   RegisteredUser,
   LoginCredentials,
 } from '../types/auth.type';
@@ -22,56 +21,52 @@ export class ValidateOtpService {
   ) {}
 
   @CreateRequestContext()
-  async validateEmailOtp(
-    data: ValidateEmailOtpRequest,
-  ): Promise<ValidateOtpResponse> {
-    const user = await this.em.findOne(User, { email: data.email });
-    if (!user) {
-      this.logger.warn(`User with email ${data.email} does not exist`);
-      return {
-        message: 'User not found for provided email',
-        statusCode: HttpStatus.NOT_FOUND,
-        success: false,
-        isValid: false,
-        user: null,
-      };
+  async validateOtp(data: ValidateOtpRequest): Promise<ValidateOtpResponse> {
+    let user: User | null = null;
+    let otpChannel: OtpChannel;
+    let identifier: string;
+
+    if (data.email) {
+      user = await this.em.findOne(User, { email: data.email });
+      if (!user) {
+        this.logger.warn(`User with email ${data.email} does not exist`);
+        return {
+          message: 'User not found for provided email',
+          statusCode: HttpStatus.NOT_FOUND,
+          success: false,
+          isValid: false,
+          user: null,
+        };
+      }
+      otpChannel = OtpChannel.EMAIL;
+      identifier = data.email;
+    } else {
+      user = await this.em.findOne(User, { phoneNumber: data.phoneNumber! });
+      if (!user) {
+        this.logger.warn(
+          `User with phone number ${data.phoneNumber} does not exist`,
+        );
+        return {
+          message: 'User not found for provided phone number',
+          statusCode: HttpStatus.NOT_FOUND,
+          success: false,
+          isValid: false,
+          user: null,
+        };
+      }
+      otpChannel = OtpChannel.SMS;
+      identifier = data.phoneNumber!;
     }
 
-    return this.validateOtp({
-      otpChannel: OtpChannel.EMAIL,
-      identifier: data.email,
+    return this.validateOtpInternal({
+      otpChannel,
+      identifier,
       token: data.token,
       user,
     });
   }
 
-  @CreateRequestContext()
-  async validateSmsOtp(
-    data: ValidateSmsOtpRequest,
-  ): Promise<ValidateOtpResponse> {
-    const user = await this.em.findOne(User, { phoneNumber: data.phoneNumber });
-    if (!user) {
-      this.logger.warn(
-        `User with phone number ${data.phoneNumber} does not exist`,
-      );
-      return {
-        message: 'User not found for provided phone number',
-        statusCode: HttpStatus.NOT_FOUND,
-        success: false,
-        isValid: false,
-        user: null,
-      };
-    }
-
-    return this.validateOtp({
-      otpChannel: OtpChannel.SMS,
-      identifier: data.phoneNumber,
-      token: data.token,
-      user,
-    });
-  }
-
-  private async validateOtp({
+  private async validateOtpInternal({
     otpChannel,
     identifier,
     token,
@@ -124,12 +119,12 @@ export class ValidateOtpService {
 
     const isEmailVerified = Boolean(user.isEmailVerified);
     const isPhoneVerified = Boolean(user.isPhoneVerified);
-    const isFullyVerified = isEmailVerified && isPhoneVerified;
+    const isVerified = isEmailVerified || isPhoneVerified;
 
-    const credentials: LoginCredentials | undefined = isFullyVerified
+    const credentials: LoginCredentials | undefined = isVerified
       ? await this.loginService.generateCredentials(user.id)
       : undefined;
-    const userPayload: RegisteredUser | null = isFullyVerified
+    const userPayload: RegisteredUser | null = isVerified
       ? {
           id: user.id,
           firstName: user.firstName,

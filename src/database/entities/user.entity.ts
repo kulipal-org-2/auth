@@ -1,11 +1,14 @@
-import { CustomBaseEntity } from './base.entity';
-import { UserRepository } from '../repositories/user.repository';
+// src/database/entities/user.entity.ts
+import { CustomBaseEntity } from "./base.entity";
+import { UserRepository } from "../repositories/user.repository";
 import { Entity, EntityRepositoryType, Property } from '@mikro-orm/postgresql';
 
 export enum UserType {
   USER = 'user',
   VENDOR = 'vendor',
 }
+
+export type IdentityVerificationType = 'KYC' | 'KYB';
 
 @Entity({ repository: () => UserRepository })
 export class User extends CustomBaseEntity {
@@ -23,7 +26,7 @@ export class User extends CustomBaseEntity {
   @Property({ nullable: true })
   avatarUrl?: string;
 
-  @Property()
+  @Property({ nullable: true })
   password?: string;
 
   @Property()
@@ -43,6 +46,19 @@ export class User extends CustomBaseEntity {
 
   @Property()
   userType!: UserType;
+
+  // NEW: User-level verification tracking
+  @Property({ default: false })
+  isIdentityVerified?: boolean = false;
+
+  @Property({ nullable: true })
+  identityVerificationType?: IdentityVerificationType;
+
+  @Property({ nullable: true })
+  identityVerifiedAt?: Date;
+
+  @Property({ nullable: true })
+  lastVerificationId?: string;
 
   getFullName(): string {
     return `${this.firstName} ${this.lastName}`;

@@ -7,9 +7,9 @@ import { default as jwksClient } from 'jwks-rsa';
 import { APPLE_ISSUER, JWKS_URI } from 'src/constants';
 import { CustomLogger as Logger } from 'kulipal-shared';
 import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
-import { RefreshToken, User } from 'src/database';
+import { BusinessProfile, RefreshToken, User } from 'src/database';
 import { createHash, randomBytes } from 'crypto';
-import type { LoginResponse, RegisteredUser } from '../types/auth.type';
+import type { BusinessProfileSummary, LoginResponse, RegisteredUser } from '../types/auth.type';
 import { type LoginGoogleRequest } from '../types/auth.type';
 
 const getOauthClient = ({
@@ -151,6 +151,38 @@ export class OauthService {
     }
 
     const credentials = await this.generateCredentials(existingUser.id);
+
+    // Fetch ALL business profiles if user is a vendor
+    let businessProfiles: BusinessProfileSummary[] = [];
+    if (existingUser.userType === 'vendor') {
+      const profiles = await this.em.find(
+        BusinessProfile,
+        { user: existingUser.id },
+        { orderBy: { createdAt: 'DESC' } }
+      );
+
+      if (profiles && profiles.length > 0) {
+        businessProfiles = profiles.map(profile => ({
+          id: profile.id,
+          businessName: profile.businessName,
+          industry: profile.industry,
+          isThirdPartyVerified: profile.isThirdPartyVerified ?? false,
+          isKycVerified: profile.isKycVerified ?? false,
+          coverImageUrl: profile.coverImageUrl,
+          description: profile.description,
+          serviceModes: profile.serviceModes,
+          location: {
+            placeId: profile.placeId,
+            lat: profile.latitude,
+            long: profile.longitude,
+            stringAddress: profile.stringAddress,
+          },
+          createdAt: profile.createdAt,
+          updatedAt: profile.updatedAt,
+        }));
+      }
+    }
+
     const userPayload: RegisteredUser = {
       id: existingUser.id,
       firstName: existingUser.firstName,
@@ -161,6 +193,9 @@ export class OauthService {
       isEmailVerified: Boolean(existingUser.isEmailVerified),
       isPhoneVerified: Boolean(existingUser.isPhoneVerified),
       source: existingUser.source ?? undefined,
+      businessProfiles, // Now returns ALL business profiles
+      isIdentityVerified: existingUser.isIdentityVerified ?? false,
+      identityVerificationType: existingUser.identityVerificationType,
     };
 
     return {

@@ -130,23 +130,35 @@ export class RequestOtpService {
 
     await em.persistAndFlush(otp);
 
-    await this.notificationService.dispatchOtp({
-      otpChannel,
-      user,
-      token,
-      expiresAt,
-      validityMinutes: OTP_TTL,
-    });
+    try {
+      await this.notificationService.dispatchOtp({
+        otpChannel,
+        user,
+        token,
+        expiresAt,
+        validityMinutes: OTP_TTL,
+      });
 
-    this.logger.debug(
-      `Generated OTP for ${otpChannel} identifier ${identifier}`,
-    );
+      this.logger.debug(
+        `Generated OTP for ${otpChannel} identifier ${identifier}`,
+      );
 
-    return {
-      message: successMessage,
-      statusCode: HttpStatus.OK,
-      success: true,
-    };
+      return {
+        message: successMessage,
+        statusCode: HttpStatus.OK,
+        success: true,
+      };
+    } catch (error: any) {
+      await otpRepository.nativeDelete({ identifier });
+      this.logger.error(
+        `Failed to send OTP via ${otpChannel} for identifier ${identifier}: ${error?.message ?? error}`,
+      );
+      return {
+        message: `Failed to send OTP. Please try again later.`,
+        statusCode: HttpStatus.SERVICE_UNAVAILABLE,
+        success: false,
+      };
+    }
   }
 
   private generateOtpToken(): string {

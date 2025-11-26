@@ -1,3 +1,4 @@
+// src/auth/services/login.service.ts
 import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -72,30 +73,41 @@ export class LoginService {
 
     const credentials = await this.generateCredentials(existingUser.id);
     
-    // NEW: Fetch business profile if user is a vendor
-    let businessProfile: BusinessProfileSummary | undefined;
+    // Fetch ALL business profiles if user is a vendor
+    let businessProfiles: BusinessProfileSummary[] = [];
     if (existingUser.userType === 'vendor') {
-      this.logger.log(`User is a vendor, fetching business profile`);
-      const profile = await this.em.findOne(
+      this.logger.log(`User is a vendor, fetching all business profiles`);
+      const profiles = await this.em.find(
         BusinessProfile,
         { user: existingUser.id },
         { 
-          orderBy: { createdAt: 'DESC' }, // Get the most recent profile
+          orderBy: { createdAt: 'DESC' }, // Optional: order by creation date
+          populate: ['operatingTimes'] // Populate related data if needed
         }
       );
 
-      if (profile) {
-        businessProfile = {
+      if (profiles && profiles.length > 0) {
+        businessProfiles = profiles.map(profile => ({
           id: profile.id,
           businessName: profile.businessName,
           industry: profile.industry,
           isThirdPartyVerified: profile.isThirdPartyVerified ?? false,
           isKycVerified: profile.isKycVerified ?? false,
           coverImageUrl: profile.coverImageUrl,
-        };
-        this.logger.log(`Business profile found for vendor: ${profile.id}`);
+          description: profile.description,
+          serviceModes: profile.serviceModes,
+          location: {
+            placeId: profile.placeId,
+            lat: profile.latitude,
+            long: profile.longitude,
+            stringAddress: profile.stringAddress,
+          },
+          createdAt: profile.createdAt,
+          updatedAt: profile.updatedAt,
+        }));
+        this.logger.log(`Found ${businessProfiles.length} business profiles for vendor: ${existingUser.id}`);
       } else {
-        this.logger.log(`No business profile found for vendor ${existingUser.id}`);
+        this.logger.log(`No business profiles found for vendor ${existingUser.id}`);
       }
     }
 
@@ -109,7 +121,10 @@ export class LoginService {
       isEmailVerified: Boolean(existingUser.isEmailVerified),
       isPhoneVerified: Boolean(existingUser.isPhoneVerified),
       source: existingUser.source ?? undefined,
-      businessProfile, 
+      businessProfiles, // Now returns ALL business profiles as an array
+      // NEW: Include user verification status
+      isIdentityVerified: existingUser.isIdentityVerified ?? false,
+      identityVerificationType: existingUser.identityVerificationType,
     };
 
     return {

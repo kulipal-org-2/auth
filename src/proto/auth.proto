@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "google/protobuf/empty.proto";
+
 package auth;
 
 service AuthService {
@@ -14,17 +16,17 @@ service AuthService {
   rpc ChangePassword (ChangePasswordDto) returns (MessageResponse) {}
   rpc SendEmailOtp (SendEmailOtpDto) returns (MessageResponse) {}
   rpc SendSmsOtp (SendSmsOtpDto) returns (MessageResponse) {}
-  rpc ValidateEmailOtp (ValidateEmailOtpDto) returns (ValidateOtpResponse) {}
-  rpc ValidateSmsOtp (ValidateSmsOtpDto) returns (ValidateOtpResponse) {}
+  rpc ValidateOtp (ValidateOtpDto) returns (ValidateOtpResponse) {}
+  rpc GetProfile (google.protobuf.Empty) returns (ProfileResponse) {}
+  rpc UpdateProfile (UpdateProfileDto) returns (ProfileResponse) {}
   rpc CreateBusinessProfile (CreateBusinessProfileDto) returns (BusinessProfileResponse) {}
   rpc UpdateBusinessProfile (UpdateBusinessProfileDto) returns (BusinessProfileResponse) {}
   rpc GetBusinessProfile (GetBusinessProfileDto) returns (BusinessProfileResponse) {}
-  rpc GetUserBusinessProfiles (GetUserBusinessProfilesDto) returns (BusinessProfilesResponse) {}
+  rpc GetPublicBusinessProfile (GetBusinessProfileDto) returns (PublicBusinessProfileResponse) {}
+  rpc GetVendorBusinessProfiles (google.protobuf.Empty) returns (BusinessProfilesResponse) {}
   rpc SearchBusinessProfiles (SearchBusinessProfilesDto) returns (SearchBusinessProfilesResponse) {}
-  rpc InitiateBusinessVerification (InitiateVerificationDto) returns (InitiateVerificationResponse) {}
-  rpc SubmitBusinessVerification (SubmitVerificationDto) returns (SubmitVerificationResponse) {}
-  rpc GetBusinessVerificationStatus (GetVerificationStatusDto) returns (GetVerificationStatusResponse) {}
-  rpc AdminReviewBusinessVerification (AdminReviewVerificationDto) returns (AdminReviewVerificationResponse) {}
+  rpc InitiateIdentityVerification (InitiateIdentityVerificationDto) returns (IdentityVerificationResponse) {}
+  rpc GetUserVerificationStatus (GetUserVerificationStatusDto) returns (GetUserVerificationStatusResponse) {}
 }
 
 message LoginDto {
@@ -33,8 +35,8 @@ message LoginDto {
 }
 
 message RefreshTokenDto {
-  string userId = 1;
-  string refreshToken = 2;
+    string userId = 1;
+    string refreshToken = 2;
 }
 
 message RegisterDto {
@@ -84,14 +86,17 @@ message SendSmsOtpDto {
   string phoneNumber = 1;
 }
 
-message ValidateEmailOtpDto {
-  string email = 1;
-  string token = 2;
+message ValidateOtpDto {
+  optional string email = 1;
+  optional string phoneNumber = 2;
+  string token = 3;
 }
 
-message ValidateSmsOtpDto {
-  string phoneNumber = 1;
-  string token = 2;
+
+message UpdateProfileDto {
+  optional string firstName = 1;
+  optional string lastName = 2;
+  optional string avatarUrl = 3;
 }
 
 message BusinessProfileSummaryDto {
@@ -101,6 +106,11 @@ message BusinessProfileSummaryDto {
   bool isThirdPartyVerified = 4;
   bool isKycVerified = 5;
   string coverImageUrl = 6;
+  string description = 7;
+  repeated string serviceModes = 8;
+  LocationDto location = 9;
+  string createdAt = 10;
+  string updatedAt = 11;
 }
 
 message UserDto {
@@ -112,10 +122,12 @@ message UserDto {
   string userType = 6;
   bool isEmailVerified = 7;
   bool isPhoneVerified = 8;
-  optional string source = 9;
-  optional BusinessProfileSummaryDto businessProfile = 10; 
+  optional string avatarUrl = 9;
+  optional string source = 10;
+  repeated BusinessProfileSummaryDto businessProfiles = 11;
+  bool isIdentityVerified = 12;
+  optional string identityVerificationType = 13;
 }
-
 message MessageResponse {
   string message = 1;
   int32 statusCode = 2;
@@ -161,6 +173,13 @@ message ValidateOtpResponse {
   bool success = 4;
   bool isValid = 5;
   UserDto user = 6;
+}
+
+message ProfileResponse {
+  string message = 1;
+  int32 statusCode = 2;
+  bool success = 3;
+  UserDto user = 4;
 }
 
 message LocationDto {
@@ -209,6 +228,20 @@ message BusinessProfileDto {
   string updatedAt = 13;
 }
 
+message PublicBusinessProfileDto {
+  string id = 1;
+  string businessName = 2;
+  string industry = 3;
+  string description = 4;
+  LocationDto location = 5;
+  repeated string serviceModes = 6;
+  string coverImageUrl = 7;
+  bool isThirdPartyVerified = 8;
+  bool isKycVerified = 9;
+  repeated OperatingTimesDto operatingTimes = 10;
+  string createdAt = 11;
+}
+
 message CreateBusinessProfileDto {
   string businessName = 1;
   string industry = 2;
@@ -234,15 +267,18 @@ message GetBusinessProfileDto {
   string businessProfileId = 1;
 }
 
-message GetUserBusinessProfilesDto {
-  // userId extracted from auth header
-}
-
 message BusinessProfileResponse {
   string message = 1;
   int32 statusCode = 2;
   bool success = 3;
   BusinessProfileDto profile = 4;
+}
+
+message PublicBusinessProfileResponse {
+  string message = 1;
+  int32 statusCode = 2;
+  bool success = 3;
+  PublicBusinessProfileDto profile = 4;
 }
 
 message BusinessProfilesResponse {
@@ -286,67 +322,46 @@ message SearchBusinessProfilesResponse {
   int32 total = 5;
 }
 
-message InitiateVerificationDto {
-  string businessProfileId = 1;
+message InitiateIdentityVerificationDto {
+  string verificationType = 1; // "KYC" or "KYB"
+  optional string businessProfileId = 2;
+  optional KycVerificationData kycData = 3;
+  optional KybVerificationData kybData = 4;
 }
 
-message InitiateVerificationResponse {
+message KycVerificationData {
+  string idType = 1;
+  string idNumber = 2;
+  optional string firstName = 3;
+  optional string lastName = 4;
+  optional string dob = 5;
+}
+
+message KybVerificationData {
+  string registrationNumber = 1;
+  string businessType = 2;
+  optional string businessName = 3;
+}
+
+message IdentityVerificationResponse {
   string message = 1;
   int32 statusCode = 2;
   bool success = 3;
-  string token = 4;
-  string jobId = 5;
+  bool alreadyVerified = 4;
+  optional string verificationType = 5;
+  optional string smileJobId = 6;
 }
 
-message SubmitVerificationDto {
-  string businessProfileId = 1;
-  string idType = 2;
-  string idNumber = 3;
-  string dob = 4;
-  string selfieImageUrl = 5;
-  string documentImageUrl = 6;
+message GetUserVerificationStatusDto {
+  // userId extracted from auth header
 }
 
-message SubmitVerificationResponse {
+message GetUserVerificationStatusResponse {
   string message = 1;
   int32 statusCode = 2;
   bool success = 3;
-  string verificationId = 4;
-}
-
-message GetVerificationStatusDto {
-  string businessProfileId = 1;
-}
-
-message VerificationDto {
-  string id = 1;
-  string verificationType = 2;
-  string status = 3;
-  string smileResultText = 4;
-  string reviewNotes = 5;
-  string rejectionReason = 6;
-  string createdAt = 7;
-  string reviewedAt = 8;
-}
-
-message GetVerificationStatusResponse {
-  string message = 1;
-  int32 statusCode = 2;
-  bool success = 3;
-  bool isThirdPartyVerified = 4;
-  bool isKycVerified = 5;
-  repeated VerificationDto verifications = 6;
-}
-
-message AdminReviewVerificationDto {
-  string verificationId = 1;
-  bool approved = 2;
-  string reviewNotes = 3;
-  string rejectionReason = 4;
-}
-
-message AdminReviewVerificationResponse {
-  string message = 1;
-  int32 statusCode = 2;
-  bool success = 3;
+  bool isIdentityVerified = 4;
+  optional string identityVerificationType = 5;
+  optional string identityVerifiedAt = 6;
+  optional string lastVerificationId = 7;
 }
