@@ -49,7 +49,7 @@ import type {
 import { GetProfileService } from './services/get-profile.service';
 import { UpdateProfileService } from './services/update-profile.service';
 import { GetUserByIdService } from './services/get-user-by-id.service';
-import { DeleteUserService } from './services/delete-user.service';
+import { DeleteProfileService } from './services/delete-profile.service';
 import { VerificationOrchestratorService } from 'src/smile-identity/services/verification-orchestrator.service';
 import { BusinessVerificationService } from 'src/smile-identity/services/kyb/business-verification.service';
 
@@ -113,7 +113,7 @@ export class AuthController {
     private readonly updateProfileService: UpdateProfileService,
     private readonly businessVerificationService: BusinessVerificationService,
     private readonly getUserByIdService: GetUserByIdService,
-    private readonly deleteUserService: DeleteUserService,
+    private readonly deleteProfileService: DeleteProfileService,
   ) {}
 
   @GrpcMethod('AuthService', 'Login')
@@ -219,6 +219,29 @@ export class AuthController {
     }
 
     return this.updateProfileService.execute(authResult.userId, data);
+  }
+
+  @GrpcMethod('AuthService', 'GetUserById')
+  async getUserById(data: { userId: string }): Promise<ProfileResponse> {
+    return this.getUserByIdService.execute(data.userId);
+  }
+
+  @GrpcMethod('AuthService', 'DeleteProfile')
+  async deleteProfile(
+    _data: {},
+    metadata: Metadata,
+  ): Promise<RMessageResponse> {
+    const authResult = this.jwtAuthGuard.validateToken(metadata);
+
+    if (!authResult.success) {
+      return {
+        message: authResult.message,
+        statusCode: 401,
+        success: false,
+      };
+    }
+
+    return this.deleteProfileService.execute(authResult.userId);
   }
 
   @GrpcMethod('AuthService', 'CreateBusinessProfile')
@@ -421,17 +444,5 @@ export class AuthController {
         isIdentityVerified: false,
       };
     }
-  }
-
-  @GrpcMethod('AuthService', 'GetUserById')
-  async getUserById(data: { userId: string }): Promise<ProfileResponse> {
-    return this.getUserByIdService.execute(data.userId);
-  }
-
-  @GrpcMethod('AuthService', 'DeleteUser')
-  async deleteUser(
-    data: { userId: string },
-  ): Promise<RMessageResponse> {
-    return this.deleteUserService.execute(data.userId);
   }
 }

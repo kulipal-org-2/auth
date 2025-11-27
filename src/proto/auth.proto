@@ -28,7 +28,7 @@ service AuthService {
   rpc InitiateIdentityVerification (InitiateIdentityVerificationDto) returns (IdentityVerificationResponse) {}
   rpc GetUserVerificationStatus (GetUserVerificationStatusDto) returns (GetUserVerificationStatusResponse) {}
   rpc GetUserById (GetUserByIdDto) returns (ProfileResponse) {}
-  rpc DeleteUser (DeleteUserDto) returns (MessageResponse) {}
+  rpc DeleteProfile (google.protobuf.Empty) returns (MessageResponse) {}
 }
 
 message LoginDto {
@@ -369,9 +369,5 @@ message GetUserVerificationStatusResponse {
 }
 
 message GetUserByIdDto {
-  string userId = 1;
-}
-
-message DeleteUserDto {
   string userId = 1;
 }
