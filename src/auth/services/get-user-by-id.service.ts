@@ -5,14 +5,14 @@ import { User } from 'src/database';
 import type { ProfileResponse, RegisteredUser } from '../types/auth.type';
 
 @Injectable()
-export class GetProfileService {
-  private readonly logger = new Logger(GetProfileService.name);
+export class GetUserByIdService {
+  private readonly logger = new Logger(GetUserByIdService.name);
 
   constructor(private readonly em: EntityManager) {}
 
   @CreateRequestContext()
   async execute(userId: string): Promise<ProfileResponse> {
-    this.logger.log(`Fetching profile for user: ${userId}`);
+    this.logger.log(`Fetching user by ID: ${userId}`);
 
     try {
       const user = await this.em.findOne(User, { id: userId });
@@ -44,21 +44,22 @@ export class GetProfileService {
 
       return {
         user: userPayload,
-        message: 'Profile retrieved successfully',
+        message: 'User retrieved successfully',
         statusCode: HttpStatus.OK,
         success: true,
       };
     } catch (error: any) {
       this.logger.error(
-        `Error fetching profile: ${error.message}`,
+        `Error fetching user by ID: ${error.message}`,
         error.stack,
       );
       return {
         user: null,
-        message: 'Failed to fetch profile',
+        message: 'Failed to fetch user',
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
         success: false,
       };
     }
   }
 }
+
