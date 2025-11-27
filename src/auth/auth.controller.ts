@@ -48,6 +48,8 @@ import type {
 } from './types/business-profile.type';
 import { GetProfileService } from './services/get-profile.service';
 import { UpdateProfileService } from './services/update-profile.service';
+import { GetUserByIdService } from './services/get-user-by-id.service';
+import { DeleteUserService } from './services/delete-user.service';
 import { VerificationOrchestratorService } from 'src/smile-identity/services/verification-orchestrator.service';
 import { BusinessVerificationService } from 'src/smile-identity/services/kyb/business-verification.service';
 
@@ -110,6 +112,8 @@ export class AuthController {
     private readonly getProfileService: GetProfileService,
     private readonly updateProfileService: UpdateProfileService,
     private readonly businessVerificationService: BusinessVerificationService,
+    private readonly getUserByIdService: GetUserByIdService,
+    private readonly deleteUserService: DeleteUserService,
   ) {}
 
   @GrpcMethod('AuthService', 'Login')
@@ -417,5 +421,17 @@ export class AuthController {
         isIdentityVerified: false,
       };
     }
+  }
+
+  @GrpcMethod('AuthService', 'GetUserById')
+  async getUserById(data: { userId: string }): Promise<ProfileResponse> {
+    return this.getUserByIdService.execute(data.userId);
+  }
+
+  @GrpcMethod('AuthService', 'DeleteUser')
+  async deleteUser(
+    data: { userId: string },
+  ): Promise<RMessageResponse> {
+    return this.deleteUserService.execute(data.userId);
   }
 }

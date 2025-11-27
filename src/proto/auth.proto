@@ -27,6 +27,8 @@ service AuthService {
   rpc SearchBusinessProfiles (SearchBusinessProfilesDto) returns (SearchBusinessProfilesResponse) {}
   rpc InitiateIdentityVerification (InitiateIdentityVerificationDto) returns (IdentityVerificationResponse) {}
   rpc GetUserVerificationStatus (GetUserVerificationStatusDto) returns (GetUserVerificationStatusResponse) {}
+  rpc GetUserById (GetUserByIdDto) returns (ProfileResponse) {}
+  rpc DeleteUser (DeleteUserDto) returns (MessageResponse) {}
 }
 
 message LoginDto {
@@ -364,4 +366,12 @@ message GetUserVerificationStatusResponse {
   optional string identityVerificationType = 5;
   optional string identityVerifiedAt = 6;
   optional string lastVerificationId = 7;
+}
+
+message GetUserByIdDto {
+  string userId = 1;
+}
+
+message DeleteUserDto {
+  string userId = 1;
 }
