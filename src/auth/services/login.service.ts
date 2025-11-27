@@ -73,7 +73,6 @@ export class LoginService {
 
     const credentials = await this.generateCredentials(existingUser.id);
     
-    // Fetch ALL business profiles if user is a vendor
     let businessProfiles: BusinessProfileSummary[] = [];
     if (existingUser.userType === 'vendor') {
       this.logger.log(`User is a vendor, fetching all business profiles`);
@@ -81,8 +80,8 @@ export class LoginService {
         BusinessProfile,
         { user: existingUser.id },
         { 
-          orderBy: { createdAt: 'DESC' }, // Optional: order by creation date
-          populate: ['operatingTimes'] // Populate related data if needed
+          orderBy: { createdAt: 'DESC' },
+          populate: ['operatingTimes']
         }
       );
 
@@ -120,11 +119,11 @@ export class LoginService {
       userType: existingUser.userType,
       isEmailVerified: Boolean(existingUser.isEmailVerified),
       isPhoneVerified: Boolean(existingUser.isPhoneVerified),
+      avatarUrl: existingUser.avatarUrl ?? undefined,
       source: existingUser.source ?? undefined,
-      businessProfiles, // Now returns ALL business profiles as an array
-      // NEW: Include user verification status
-      isIdentityVerified: existingUser.isIdentityVerified ?? false,
-      identityVerificationType: existingUser.identityVerificationType,
+      businessProfiles,
+      isIdentityVerified: Boolean(existingUser.isIdentityVerified),
+      identityVerificationType: existingUser.identityVerificationType ?? undefined,
     };
 
     return {

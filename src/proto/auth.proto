@@ -27,6 +27,8 @@ service AuthService {
   rpc SearchBusinessProfiles (SearchBusinessProfilesDto) returns (SearchBusinessProfilesResponse) {}
   rpc InitiateIdentityVerification (InitiateIdentityVerificationDto) returns (IdentityVerificationResponse) {}
   rpc GetUserVerificationStatus (GetUserVerificationStatusDto) returns (GetUserVerificationStatusResponse) {}
+  rpc GetUserById (GetUserByIdDto) returns (ProfileResponse) {}
+  rpc DeleteProfile (google.protobuf.Empty) returns (MessageResponse) {}
 }
 
 message LoginDto {
@@ -364,4 +366,8 @@ message GetUserVerificationStatusResponse {
   optional string identityVerificationType = 5;
   optional string identityVerifiedAt = 6;
   optional string lastVerificationId = 7;
+}
+
+message GetUserByIdDto {
+  string userId = 1;
 }

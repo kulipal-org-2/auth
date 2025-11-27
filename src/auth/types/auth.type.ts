@@ -40,10 +40,8 @@ export type RegisteredUser = {
   isEmailVerified: boolean;
   isPhoneVerified: boolean;
   avatarUrl?: string;
-  source?: string;
-  // CHANGED: Now returns ALL business profiles as an array
+  source?: string
   businessProfiles?: BusinessProfileSummary[];
-  // NEW: Include user verification status
   isIdentityVerified?: boolean;
   identityVerificationType?: 'KYC' | 'KYB';
 };

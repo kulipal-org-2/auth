@@ -65,6 +65,8 @@ export class UpdateProfileService {
         isPhoneVerified: Boolean(user.isPhoneVerified),
         source: user.source ?? undefined,
         avatarUrl: user.avatarUrl ?? undefined,
+        isIdentityVerified: Boolean(user.isIdentityVerified),
+        identityVerificationType: user.identityVerificationType ?? undefined,
       };
 
       return {
