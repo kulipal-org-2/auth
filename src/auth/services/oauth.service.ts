@@ -192,10 +192,11 @@ export class OauthService {
       userType: existingUser.userType,
       isEmailVerified: Boolean(existingUser.isEmailVerified),
       isPhoneVerified: Boolean(existingUser.isPhoneVerified),
+      avatarUrl: existingUser.avatarUrl ?? undefined,
       source: existingUser.source ?? undefined,
-      businessProfiles, // Now returns ALL business profiles
-      isIdentityVerified: existingUser.isIdentityVerified ?? false,
-      identityVerificationType: existingUser.identityVerificationType,
+      businessProfiles,
+      isIdentityVerified: Boolean(existingUser.isIdentityVerified),
+      identityVerificationType: existingUser.identityVerificationType ?? undefined,
     };
 
     return {

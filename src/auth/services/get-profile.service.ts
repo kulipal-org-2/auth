@@ -38,6 +38,8 @@ export class GetProfileService {
         isPhoneVerified: Boolean(user.isPhoneVerified),
         avatarUrl: user.avatarUrl ?? undefined,
         source: user.source ?? undefined,
+        isIdentityVerified: Boolean(user.isIdentityVerified),
+        identityVerificationType: user.identityVerificationType ?? undefined,
       };
 
       return {

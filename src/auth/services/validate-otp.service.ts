@@ -134,7 +134,10 @@ export class ValidateOtpService {
           userType: user.userType,
           isEmailVerified,
           isPhoneVerified,
+          avatarUrl: user.avatarUrl ?? undefined,
           source: user.source ?? undefined,
+          isIdentityVerified: Boolean(user.isIdentityVerified),
+          identityVerificationType: user.identityVerificationType ?? undefined,
         }
       : null;
 

@@ -113,10 +113,11 @@ export class RefreshAccessTokenService {
         userType: user.userType,
         isEmailVerified: Boolean(user.isEmailVerified),
         isPhoneVerified: Boolean(user.isPhoneVerified),
+        avatarUrl: user.avatarUrl ?? undefined,
         source: user.source ?? undefined,
-        businessProfiles, // Now returns ALL business profiles
-        isIdentityVerified: user.isIdentityVerified ?? false,
-        identityVerificationType: user.identityVerificationType,
+        businessProfiles,
+        isIdentityVerified: Boolean(user.isIdentityVerified),
+        identityVerificationType: user.identityVerificationType ?? undefined,
       };
     }
 
