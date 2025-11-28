@@ -15,7 +15,12 @@ import type {
   SearchBusinessProfilesResponse,
   UpdateBusinessProfileRequest,
 } from '../types/business-profile.type';
-import { BusinessProfile, OperatingTimes, User } from 'src/database/entities';
+import {
+  BusinessProfile,
+  OperatingTimes,
+  User,
+  UserType,
+} from 'src/database/entities';
 
 @Injectable()
 export class BusinessProfileService {
@@ -42,19 +47,12 @@ export class BusinessProfileService {
         };
       }
 
-      if (user.userType !== 'vendor') {
-        return {
-          message: 'User is not a vendor',
-          statusCode: HttpStatus.FORBIDDEN,
-          success: false,
-          profile: null,
-        };
-      }
-
       // Auto-apply user verification status to business profile
       const isUserVerified = user.isIdentityVerified ?? false;
 
-      this.logger.log(`User verification status: ${isUserVerified} for user: ${userId}`);
+      this.logger.log(
+        `User verification status: ${isUserVerified} for user: ${userId}`,
+      );
 
       const businessProfile = this.em.create(BusinessProfile, {
         user: user,
@@ -74,6 +72,10 @@ export class BusinessProfileService {
       });
 
       await this.em.persistAndFlush(businessProfile);
+
+      user.userType = UserType.VENDOR;
+      await this.em.flush();
+      this.logger.log(`Updated user ${userId} userType to vendor`);
 
       if (data.operatingTimes) {
         await this.updateOperatingTimes(businessProfile, data.operatingTimes);
@@ -142,7 +144,17 @@ export class BusinessProfileService {
 
       // Check if user verification status has changed and update business profile accordingly
       const user = await this.em.findOne(User, { id: userId });
-      if (user && user.isIdentityVerified) {
+
+      if (!user) {
+        return {
+          message: 'User not found',
+          statusCode: HttpStatus.NOT_FOUND,
+          success: false,
+          profile: null,
+        };
+      }
+
+      if (user.isIdentityVerified) {
         businessProfile.isThirdPartyVerified = true;
         businessProfile.isKycVerified = true;
       }
