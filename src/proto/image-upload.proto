@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package imageupload;
+
+service ImageUploadService {
+  rpc GetImageUploadSignature (ImageUploadInfo) returns (ImageUploadSignature);
+}
+
+message ImageUploadInfo {
+  string filename = 1;
+  string fileType = 2; // MIME type, e.g., "image/jpeg"
+}
+
+message ImageUploadSignature {
+  string apiKey = 1;
+  string signature = 2;
+  int64 timestamp = 3;
+  string uploadPreset = 4; // Name of your unsigned upload preset
+  string cloudName = 5;
+}
