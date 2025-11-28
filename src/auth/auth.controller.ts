@@ -384,7 +384,6 @@ export class AuthController {
           authResult.userId,
           data.verificationType,
           verificationData,
-          data.businessProfileId,
         );
 
       return {
