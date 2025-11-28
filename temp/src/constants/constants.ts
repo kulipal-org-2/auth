@@ -1,1 +1,0 @@
-export const OTP_TTL = 10;
