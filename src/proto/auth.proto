@@ -1,0 +1,403 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+
+package auth;
+
+service AuthService {
+  rpc Login (LoginDto) returns (LoginResponse) {}
+  rpc RefreshToken (RefreshTokenDto) returns (LoginResponse) {}
+  rpc Register (RegisterDto) returns (RegisterResponse) {}
+  rpc LoginGoogle (LoginGoogleDto) returns (LoginResponse) {}
+  rpc LoginApple (LoginAppleDto) returns (LoginResponse) {}
+  rpc ForgotPassword (ForgotPasswordDto) returns (MessageResponse) {}
+  rpc ValidateToken (ValidateTokenDto) returns (ValidateTokenResponse) {}
+  rpc ResetPassword (ResetPasswordDto) returns (MessageResponse) {}
+  rpc ChangePassword (ChangePasswordDto) returns (MessageResponse) {}
+  rpc SendEmailOtp (SendEmailOtpDto) returns (MessageResponse) {}
+  rpc SendSmsOtp (SendSmsOtpDto) returns (MessageResponse) {}
+  rpc ValidateOtp (ValidateOtpDto) returns (ValidateOtpResponse) {}
+  rpc GetProfile (google.protobuf.Empty) returns (ProfileResponse) {}
+  rpc UpdateProfile (UpdateProfileDto) returns (ProfileResponse) {}
+  rpc CreateBusinessProfile (CreateBusinessProfileDto) returns (BusinessProfileResponse) {}
+  rpc UpdateBusinessProfile (UpdateBusinessProfileDto) returns (BusinessProfileResponse) {}
+  rpc GetBusinessProfile (GetBusinessProfileDto) returns (BusinessProfileResponse) {}
+  rpc GetPublicBusinessProfile (GetBusinessProfileDto) returns (PublicBusinessProfileResponse) {}
+  rpc GetVendorBusinessProfiles (google.protobuf.Empty) returns (BusinessProfilesResponse) {}
+  rpc SearchBusinessProfiles (SearchBusinessProfilesDto) returns (SearchBusinessProfilesResponse) {}
+  rpc InitiateIdentityVerification (InitiateIdentityVerificationDto) returns (IdentityVerificationResponse) {}
+  rpc GetUserVerificationStatus (GetUserVerificationStatusDto) returns (GetUserVerificationStatusResponse) {}
+  rpc GetUserById (GetUserByIdDto) returns (ProfileResponse) {}
+  rpc DeleteProfile (google.protobuf.Empty) returns (MessageResponse) {}
+}
+
+message LoginDto {
+  string email = 1;
+  string password = 2;
+}
+
+message RefreshTokenDto {
+    string userId = 1;
+    string refreshToken = 2;
+}
+
+message RegisterDto {
+  string email = 1;
+  string password = 2;
+  string firstName = 3;
+  string lastName = 4;
+  bool agreeToTerms = 5;
+  string phoneNumber = 6;
+  optional string source = 7;
+}
+
+message WalletDto {
+  string id = 1;
+  string accountNumber = 2;
+  double balance = 3;
+  string currency = 4;
+  bool isPinSet = 5;
+  bool isActive = 6;
+}
+
+message LoginGoogleDto {
+  string accessToken = 1;
+  string refreshToken = 2;
+}
+
+message LoginAppleDto {
+  string code = 1;
+}
+
+message ForgotPasswordDto {
+  string email = 1;
+}
+
+message ValidateTokenDto {
+  string token = 1;
+  string email = 2;
+}
+
+message ResetPasswordDto {
+  string token = 1;
+  string email = 2;
+  string newPassword = 3;
+}
+
+message ChangePasswordDto {
+  string currentPassword = 1;
+  string newPassword = 2;
+}
+
+message SendEmailOtpDto {
+  string email = 1;
+}
+
+message SendSmsOtpDto {
+  string phoneNumber = 1;
+}
+
+message ValidateOtpDto {
+  optional string email = 1;
+  optional string phoneNumber = 2;
+  string token = 3;
+}
+
+message GetVendorBusinessProfilesDto {
+  PaginationParams pagination = 1;
+}
+
+
+
+message UpdateProfileDto {
+  optional string firstName = 1;
+  optional string lastName = 2;
+  optional string avatarUrl = 3;
+}
+
+message BusinessProfileSummaryDto {
+  string id = 1;
+  string businessName = 2;
+  string industry = 3;
+  bool isThirdPartyVerified = 4;
+  bool isKycVerified = 5;
+  string coverImageUrl = 6;
+  string description = 7;
+  repeated string serviceModes = 8;
+  LocationDto location = 9;
+  string createdAt = 10;
+  string updatedAt = 11;
+}
+
+message UserDto {
+  string id = 1;
+  string firstName = 2;
+  string lastName = 3;
+  string email = 4;
+  string phoneNumber = 5;
+  string userType = 6;
+  bool isEmailVerified = 7;
+  bool isPhoneVerified = 8;
+  optional string avatarUrl = 9;
+  optional string source = 10;
+  repeated BusinessProfileSummaryDto businessProfiles = 11;
+  bool isIdentityVerified = 12;
+  optional string identityVerificationType = 13;
+  optional WalletDto wallet = 14;
+}
+message MessageResponse {
+  string message = 1;
+  int32 statusCode = 2;
+  bool success = 3;
+}
+
+message LoginResponse {
+  message Credentials {
+    string accessToken = 1;
+    string refreshToken = 2;
+  }
+
+  optional Credentials credentials = 1;
+  string message = 2;
+  int32 statusCode = 3;
+  bool success = 4;
+  UserDto user = 5;
+}
+
+message RegisterResponse {
+  string message = 1;
+  int32 statusCode = 2;
+  bool success = 3;
+  UserDto user = 4;
+}
+
+message ValidateTokenResponse {
+  string message = 1;
+  int32 statusCode = 2;
+  bool success = 3;
+  bool isValid = 4;
+}
+
+message ValidateOtpResponse {
+  message Credentials {
+    string accessToken = 1;
+    string refreshToken = 2;
+  }
+
+  optional Credentials credentials = 1;
+  string message = 2;
+  int32 statusCode = 3;
+  bool success = 4;
+  bool isValid = 5;
+  UserDto user = 6;
+}
+
+message ProfileResponse {
+  string message = 1;
+  int32 statusCode = 2;
+  bool success = 3;
+  UserDto user = 4;
+}
+
+message LocationDto {
+  string placeId = 1;
+  double lat = 2;
+  double long = 3;
+  string stringAddress = 4;
+}
+
+message OperatingTimeDto {
+  string start = 1;
+  string end = 2;
+}
+
+message OperatingTimesInputDto {
+  optional OperatingTimeDto sun = 1;
+  optional OperatingTimeDto mon = 2;
+  optional OperatingTimeDto tue = 3;
+  optional OperatingTimeDto wed = 4;
+  optional OperatingTimeDto thu = 5;
+  optional OperatingTimeDto fri = 6;
+  optional OperatingTimeDto sat = 7;
+  optional OperatingTimeDto weekdays = 8;
+  optional OperatingTimeDto weekends = 9;
+}
+
+message OperatingTimesDto {
+  string day = 1;
+  string startTime = 2;
+  string endTime = 3;
+}
+
+message BusinessProfileDto {
+  string id = 1;
+  string userId = 2;
+  string businessName = 3;
+  string industry = 4;
+  string description = 5;
+  LocationDto location = 6;
+  repeated string serviceModes = 7;
+  string coverImageUrl = 8;
+  bool isThirdPartyVerified = 9;
+  bool isKycVerified = 10;
+  repeated OperatingTimesDto operatingTimes = 11;
+  string createdAt = 12;
+  string updatedAt = 13;
+}
+
+message PublicBusinessProfileDto {
+  string id = 1;
+  string businessName = 2;
+  string industry = 3;
+  string description = 4;
+  LocationDto location = 5;
+  repeated string serviceModes = 6;
+  string coverImageUrl = 7;
+  bool isThirdPartyVerified = 8;
+  bool isKycVerified = 9;
+  repeated OperatingTimesDto operatingTimes = 10;
+  string createdAt = 11;
+}
+
+message CreateBusinessProfileDto {
+  string businessName = 1;
+  string industry = 2;
+  string description = 3;
+  LocationDto location = 4;
+  repeated string serviceModes = 5;
+  string coverImageUrl = 6;
+  optional OperatingTimesInputDto operatingTimes = 7;
+}
+
+message UpdateBusinessProfileDto {
+  string businessProfileId = 1;
+  string businessName = 2;
+  string industry = 3;
+  string description = 4;
+  LocationDto location = 5;
+  repeated string serviceModes = 6;
+  string coverImageUrl = 7;
+  optional OperatingTimesInputDto operatingTimes = 8;
+}
+
+message GetBusinessProfileDto {
+  string businessProfileId = 1;
+}
+
+message BusinessProfileResponse {
+  string message = 1;
+  int32 statusCode = 2;
+  bool success = 3;
+  BusinessProfileDto profile = 4;
+}
+
+message PublicBusinessProfileResponse {
+  string message = 1;
+  int32 statusCode = 2;
+  bool success = 3;
+  PublicBusinessProfileDto profile = 4;
+}
+
+message BusinessProfilesResponse {
+  string message = 1;
+  int32 statusCode = 2;
+  bool success = 3;
+  repeated BusinessProfileDto profiles = 4;
+  int32 total = 5;
+  int32 page = 6;
+  int32 limit = 7;
+  int32 totalPages = 8;
+  bool hasNext = 9;
+  bool hasPrevious = 10;
+}
+
+message SearchBusinessProfilesDto {
+  double latitude = 1;
+  double longitude = 2;
+  double radiusKm = 3;
+  string industry = 4;
+  int32 limit = 5;
+  int32 offset = 6;
+}
+
+message BusinessProfileDistanceDto {
+  string id = 1;
+  string userId = 2;
+  string businessName = 3;
+  string industry = 4;
+  string description = 5;
+  LocationDto location = 6;
+  repeated string serviceModes = 7;
+  string coverImageUrl = 8;
+  bool isThirdPartyVerified = 9;
+  bool isKycVerified = 10;
+  double distanceKm = 11;
+  string createdAt = 12;
+  string updatedAt = 13;
+}
+
+message SearchBusinessProfilesResponse {
+  string message = 1;
+  int32 statusCode = 2;
+  bool success = 3;
+  repeated BusinessProfileDistanceDto profiles = 4;
+  int32 total = 5;
+  int32 page = 6;
+  int32 limit = 7;
+  int32 totalPages = 8;
+  bool hasNext = 9;
+  bool hasPrevious = 10;
+}
+
+message InitiateIdentityVerificationDto {
+  string verificationType = 1; // "KYC" or "KYB"
+  optional string businessProfileId = 2;
+  optional KycVerificationData kycData = 3;
+  optional KybVerificationData kybData = 4;
+}
+
+message KycVerificationData {
+  string idType = 1;
+  string idNumber = 2;
+  optional string firstName = 3;
+  optional string lastName = 4;
+  optional string dob = 5;
+}
+
+message KybVerificationData {
+  string registrationNumber = 1;
+  string businessType = 2;
+  optional string businessName = 3;
+}
+
+message IdentityVerificationResponse {
+  string message = 1;
+  int32 statusCode = 2;
+  bool success = 3;
+  bool alreadyVerified = 4;
+  optional string verificationType = 5;
+  optional string smileJobId = 6;
+}
+
+message GetUserVerificationStatusDto {
+  // userId extracted from auth header
+}
+
+message GetUserVerificationStatusResponse {
+  string message = 1;
+  int32 statusCode = 2;
+  bool success = 3;
+  bool isIdentityVerified = 4;
+  optional string identityVerificationType = 5;
+  optional string identityVerifiedAt = 6;
+  optional string lastVerificationId = 7;
+}
+
+message GetUserByIdDto {
+  string userId = 1;
+}
+
+message PaginationParams {
+  int32 page = 1;
+  int32 limit = 2;
+}
