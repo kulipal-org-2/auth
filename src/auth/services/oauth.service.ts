@@ -11,6 +11,7 @@ import { BusinessProfile, RefreshToken, User } from 'src/database';
 import { createHash, randomBytes } from 'crypto';
 import type { BusinessProfileSummary, LoginResponse, RegisteredUser } from '../types/auth.type';
 import { type LoginGoogleRequest } from '../types/auth.type';
+import { Wallet } from 'src/database/entities/wallet.entity';
 
 const getOauthClient = ({
   client_id,
@@ -183,6 +184,23 @@ export class OauthService {
       }
     }
 
+    let walletInfo: RegisteredUser['wallet'] | undefined;
+    try {
+      const wallet = await this.em.findOne(Wallet, { user: existingUser.id });
+      if (wallet) {
+        walletInfo = {
+          id: wallet.id,
+          accountNumber: wallet.accountNumber,
+          balance: Number(wallet.balance),
+          currency: wallet.currency,
+          isPinSet: wallet.isPinSet,
+          isActive: wallet.isActive,
+        };
+      }
+    } catch (walletError: any) {
+      this.logger.error(`Error fetching wallet: ${walletError.message}`);
+    }
+
     const userPayload: RegisteredUser = {
       id: existingUser.id,
       firstName: existingUser.firstName,
@@ -197,6 +215,7 @@ export class OauthService {
       businessProfiles,
       isIdentityVerified: Boolean(existingUser.isIdentityVerified),
       identityVerificationType: existingUser.identityVerificationType ?? undefined,
+      wallet: walletInfo,
     };
 
     return {

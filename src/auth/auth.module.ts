@@ -27,6 +27,7 @@ import { KycService } from 'src/smile-identity/services/kyc/kyc.service';
 import { KybService } from 'src/smile-identity/services/kyb/kyb.service';
 import { SmileCoreService } from 'src/smile-identity/services/smile-core.service';
 import { BusinessVerificationService } from 'src/smile-identity/services/kyb/business-verification.service';
+import { WalletModule } from 'src/wallet/wallet.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { BusinessVerificationService } from 'src/smile-identity/services/kyb/bus
         },
       },
     ]),
+    WalletModule,
   ],
   controllers: [AuthController],
   providers: [
@@ -72,5 +74,6 @@ import { BusinessVerificationService } from 'src/smile-identity/services/kyb/bus
     VerificationOrchestratorService,
     BusinessVerificationService,
   ],
+  exports: [NotificationService],
 })
-export class AuthModule {}
+export class AuthModule { }

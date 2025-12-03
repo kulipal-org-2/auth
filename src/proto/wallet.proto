@@ -1,0 +1,116 @@
+syntax = "proto3";
+
+package wallet;
+
+service WalletService {
+  rpc CreateWallet(CreateWalletRequest) returns (CreateWalletResponse);
+  rpc GetWallet(GetWalletRequest) returns (GetWalletResponse);
+  rpc GetWalletByAccountNumber(GetWalletByAccountNumberRequest) returns (GetWalletResponse);
+  rpc SetWalletPin(SetWalletPinRequest) returns (SetWalletPinResponse);
+  rpc ChangePin(ChangePinRequest) returns (ChangePinResponse);
+  rpc InitiateResetPin(InitiateResetPinRequest) returns (InitiateResetPinResponse);
+  rpc ResetPin(ResetPinRequest) returns (ResetPinResponse);
+  rpc ValidateWalletPin(ValidateWalletPinRequest) returns (ValidateWalletPinResponse);
+}
+
+message WalletDto {
+  string id = 1;
+  string accountNumber = 2;
+  double balance = 3;
+  string currency = 4;
+  bool isPinSet = 5;
+  bool isActive = 6;
+  optional string lastTransactionAt = 7;
+  optional string createdAt = 8;
+}
+
+message CreateWalletRequest {
+  // userId extracted from JWT token in metadata
+}
+
+message CreateWalletResponse {
+  bool success = 1;
+  int32 statusCode = 2;
+  string message = 3;
+  optional WalletDto wallet = 4;
+}
+
+
+message GetWalletRequest {
+  // userId extracted from JWT token in metadata
+}
+
+message GetWalletResponse {
+  bool success = 1;
+  int32 statusCode = 2;
+  string message = 3;
+  optional WalletDto wallet = 4;
+}
+
+
+message GetWalletByAccountNumberRequest {
+  string accountNumber = 1;
+}
+
+
+message SetWalletPinRequest {
+  string pin = 1;
+}
+
+message SetWalletPinResponse {
+  bool success = 1;
+  int32 statusCode = 2;
+  string message = 3;
+}
+
+
+message ChangePinRequest {
+  string oldPin = 1;
+  string newPin = 2;
+}
+
+message ChangePinResponse {
+  bool success = 1;
+  int32 statusCode = 2;
+  string message = 3;
+}
+
+message InitiateResetPinRequest {
+  string password = 1;
+}
+
+message InitiateResetPinResponse {
+  bool success = 1;
+  int32 statusCode = 2;
+  string message = 3;
+}
+
+// ============================================
+// Reset PIN
+// ============================================
+
+message ResetPinRequest {
+  string otp = 1;
+  string newPin = 2;
+}
+
+message ResetPinResponse {
+  bool success = 1;
+  int32 statusCode = 2;
+  string message = 3;
+}
+
+// ============================================
+// Validate Wallet PIN
+// ============================================
+
+message ValidateWalletPinRequest {
+  string pin = 1;
+}
+
+message ValidateWalletPinResponse {
+  bool success = 1;
+  int32 statusCode = 2;
+  string message = 3;
+  bool isValid = 4;
+}

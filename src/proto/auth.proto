@@ -51,6 +51,15 @@ message RegisterDto {
   optional string source = 7;
 }
 
+message WalletDto {
+  string id = 1;
+  string accountNumber = 2;
+  double balance = 3;
+  string currency = 4;
+  bool isPinSet = 5;
+  bool isActive = 6;
+}
+
 message LoginGoogleDto {
   string accessToken = 1;
   string refreshToken = 2;
@@ -94,6 +103,11 @@ message ValidateOtpDto {
   string token = 3;
 }
 
+message GetVendorBusinessProfilesDto {
+  PaginationParams pagination = 1;
+}
+
+
 
 message UpdateProfileDto {
   optional string firstName = 1;
@@ -129,6 +143,7 @@ message UserDto {
   repeated BusinessProfileSummaryDto businessProfiles = 11;
   bool isIdentityVerified = 12;
   optional string identityVerificationType = 13;
+  optional WalletDto wallet = 14;
 }
 message MessageResponse {
   string message = 1;
@@ -289,6 +304,11 @@ message BusinessProfilesResponse {
   bool success = 3;
   repeated BusinessProfileDto profiles = 4;
   int32 total = 5;
+  int32 page = 6;
+  int32 limit = 7;
+  int32 totalPages = 8;
+  bool hasNext = 9;
+  bool hasPrevious = 10;
 }
 
 message SearchBusinessProfilesDto {
@@ -322,6 +342,11 @@ message SearchBusinessProfilesResponse {
   bool success = 3;
   repeated BusinessProfileDistanceDto profiles = 4;
   int32 total = 5;
+  int32 page = 6;
+  int32 limit = 7;
+  int32 totalPages = 8;
+  bool hasNext = 9;
+  bool hasPrevious = 10;
 }
 
 message InitiateIdentityVerificationDto {
@@ -370,4 +395,9 @@ message GetUserVerificationStatusResponse {
 
 message GetUserByIdDto {
   string userId = 1;
+}
+
+message PaginationParams {
+  int32 page = 1;
+  int32 limit = 2;
 }
