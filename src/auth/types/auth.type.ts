@@ -47,7 +47,6 @@ export type RegisteredUser = {
 };
 
 export type RefreshTokenRequest = {
-  userId: string;
   refreshToken: string;
 };
 

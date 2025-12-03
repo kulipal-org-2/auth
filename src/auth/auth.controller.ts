@@ -1,7 +1,7 @@
 // src/auth/auth.controller.ts
 import { Controller } from '@nestjs/common';
 import { GrpcMethod } from '@nestjs/microservices';
-import type { Metadata } from '@grpc/grpc-js';
+import { Metadata } from '@grpc/grpc-js';
 import {
   type RegisterRequest,
   type RegisterResponse,
@@ -122,8 +122,22 @@ export class AuthController {
   }
 
   @GrpcMethod('AuthService', 'RefreshToken')
-  refreshAccessToken(data: RefreshTokenRequest): Promise<LoginResponse> {
-    return this.refreshToken.execute(data);
+  async refreshAccessToken(
+    data: RefreshTokenRequest,
+    metadata: Metadata,
+  ): Promise<LoginResponse> {
+    const authResult = this.jwtAuthGuard.validateToken(metadata);
+
+    if (!authResult.success) {
+      return {
+        success: false,
+        statusCode: 401,
+        message: authResult.message,
+        user: null,
+      };
+    }
+
+    return this.refreshToken.execute(authResult.userId, data.refreshToken);
   }
 
   @GrpcMethod('AuthService', 'Register')
