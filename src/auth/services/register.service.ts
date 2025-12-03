@@ -9,11 +9,15 @@ import { hash } from 'argon2';
 import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
 import { User, UserType } from 'src/database';
 import type { RegisterResponse } from '../types/auth.type';
+import { CreateWalletService } from 'src/wallet/services/create-wallet.service';
 
 @Injectable()
 export class RegisterService {
   private readonly logger = new Logger(RegisterService.name);
-  constructor(private readonly em: EntityManager) {}
+  constructor(
+    private readonly em: EntityManager,
+    private readonly createWalletService: CreateWalletService,
+  ) { }
 
   @CreateRequestContext()
   async execute(data: CreateUserType): Promise<RegisterResponse> {
@@ -90,6 +94,25 @@ export class RegisterService {
     this.logger.log(
       `Successfully created user with email ${normalizedEmail} and id ${user.id}`,
     );
+
+    try {
+      const walletResult = await this.createWalletService.execute(user.id);
+
+      if (walletResult.success) {
+        this.logger.log(
+          `Successfully created wallet with account number ${walletResult.wallet?.accountNumber} for user ${user.id}`,
+        );
+      } else {
+        this.logger.warn(
+          `Failed to create wallet for user ${user.id}: ${walletResult.message}`,
+        );
+      }
+    } catch (walletError: any) {
+      this.logger.error(
+        `Error creating wallet for user ${user.id}: ${walletError.message}`,
+        walletError.stack,
+      );
+    }
 
     return {
       message: 'User created successfully',

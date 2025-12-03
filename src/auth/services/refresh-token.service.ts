@@ -5,11 +5,7 @@ import { CustomLogger as Logger } from 'kulipal-shared';
 import { createHash, randomBytes } from 'crypto';
 import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
 import { RefreshToken, User, BusinessProfile } from 'src/database';
-import type {
-  LoginResponse,
-  RegisteredUser,
-  BusinessProfileSummary,
-} from '../types/auth.type';
+import type { LoginResponse, RefreshTokenRequest, RegisteredUser, BusinessProfileSummary } from '../types/auth.type';
 
 @Injectable()
 export class RefreshAccessTokenService {
@@ -18,10 +14,11 @@ export class RefreshAccessTokenService {
   constructor(
     private readonly em: EntityManager,
     private readonly jwtService: JwtService,
-  ) {}
+  ) { }
 
   @CreateRequestContext()
-  async execute(userId: string, refreshToken: string): Promise<LoginResponse> {
+  async execute(data: RefreshTokenRequest): Promise<LoginResponse> {
+    const { userId, refreshToken } = data;
     const hashed = createHash('sha512').update(refreshToken).digest('hex');
 
     const token = await this.em.findOne(RefreshToken, {
@@ -82,11 +79,11 @@ export class RefreshAccessTokenService {
         const profiles = await this.em.find(
           BusinessProfile,
           { user: user.id },
-          { orderBy: { createdAt: 'DESC' } },
+          { orderBy: { createdAt: 'DESC' } }
         );
 
         if (profiles && profiles.length > 0) {
-          businessProfiles = profiles.map((profile) => ({
+          businessProfiles = profiles.map(profile => ({
             id: profile.id,
             businessName: profile.businessName,
             industry: profile.industry,

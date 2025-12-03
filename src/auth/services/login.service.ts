@@ -7,6 +7,7 @@ import { createHash, randomBytes } from 'crypto';
 import { CustomLogger as Logger } from 'kulipal-shared';
 import { BusinessProfile, RefreshToken, User } from 'src/database';
 import type { BusinessProfileSummary, LoginResponse, RegisteredUser } from '../types/auth.type';
+import { Wallet } from 'src/database/entities/wallet.entity';
 
 export type LoginType = {
   email: string;
@@ -20,7 +21,7 @@ export class LoginService {
   constructor(
     private readonly em: EntityManager,
     private jwtService: JwtService,
-  ) {}
+  ) { }
 
   @CreateRequestContext()
   async execute(data: LoginType): Promise<LoginResponse> {
@@ -72,14 +73,14 @@ export class LoginService {
     );
 
     const credentials = await this.generateCredentials(existingUser.id);
-    
+
     let businessProfiles: BusinessProfileSummary[] = [];
     if (existingUser.userType === 'vendor') {
       this.logger.log(`User is a vendor, fetching all business profiles`);
       const profiles = await this.em.find(
         BusinessProfile,
         { user: existingUser.id },
-        { 
+        {
           orderBy: { createdAt: 'DESC' },
           populate: ['operatingTimes']
         }
@@ -110,6 +111,28 @@ export class LoginService {
       }
     }
 
+    let walletInfo: RegisteredUser['wallet'] | undefined;
+    try {
+      const wallet = await this.em.findOne(Wallet, { user: existingUser.id });
+      if (wallet) {
+        walletInfo = {
+          id: wallet.id,
+          accountNumber: wallet.accountNumber,
+          balance: Number(wallet.balance),
+          currency: wallet.currency,
+          isPinSet: wallet.isPinSet,
+          isActive: wallet.isActive,
+        };
+        this.logger.log(`Fetched wallet info for user ${existingUser.id}`);
+      } else {
+        this.logger.warn(`No wallet found for user ${existingUser.id}`);
+      }
+    } catch (walletError: any) {
+      this.logger.error(
+        `Error fetching wallet for user ${existingUser.id}: ${walletError.message}`,
+      );
+    }
+
     const userPayload: RegisteredUser = {
       id: existingUser.id,
       firstName: existingUser.firstName,
@@ -124,6 +147,7 @@ export class LoginService {
       businessProfiles,
       isIdentityVerified: Boolean(existingUser.isIdentityVerified),
       identityVerificationType: existingUser.identityVerificationType ?? undefined,
+      wallet: walletInfo,
     };
 
     return {
@@ -134,7 +158,7 @@ export class LoginService {
       user: userPayload,
     };
   }
-  
+
   async generateCredentials(userId: string) {
     const accessToken = this.jwtService.sign({ userId }, { expiresIn: '1h' });
     const refreshToken = randomBytes(32).toString('base64url');

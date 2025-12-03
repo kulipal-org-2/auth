@@ -40,6 +40,7 @@ export interface SearchBusinessProfilesRequest {
   industry?: 'FOOD' | 'EVENTS' | 'HOUSING';
   limit?: number;
   offset?: number;
+  page?: number;
 }
 
 export interface OperatingTimesInput {
@@ -120,6 +121,11 @@ export interface BusinessProfilesResponse {
   success: boolean;
   profiles: BusinessProfileDto[];
   total: number;
+  page?: number;
+  limit?: number;
+  totalPages?: number;
+  hasNext?: boolean;
+  hasPrevious?: boolean;
 }
 
 export interface BusinessProfileDistanceDto extends BusinessProfileDto {
@@ -132,4 +138,14 @@ export interface SearchBusinessProfilesResponse {
   success: boolean;
   profiles: BusinessProfileDistanceDto[];
   total: number;
+  page?: number;
+  limit?: number;
+  totalPages?: number;
+  hasNext?: boolean;
+  hasPrevious?: boolean;
+}
+
+export interface PaginationParams {
+  page: number;
+  limit: number;
 }
