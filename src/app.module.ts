@@ -5,6 +5,7 @@ import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './auth/auth.module';
 import { SmileIdentityModule } from './smile-identity/smile-identity.module';
+import { WalletModule } from './wallet/wallet.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { SmileIdentityModule } from './smile-identity/smile-identity.module';
     ConfigModule.forRoot({ isGlobal: true }),
     DatabaseModule,
     SmileIdentityModule,
+    WalletModule,
   ],
   controllers: [AppController],
   providers: [AppService],

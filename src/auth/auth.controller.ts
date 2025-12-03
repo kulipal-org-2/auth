@@ -114,7 +114,7 @@ export class AuthController {
     private readonly businessVerificationService: BusinessVerificationService,
     private readonly getUserByIdService: GetUserByIdService,
     private readonly deleteProfileService: DeleteProfileService,
-  ) {}
+  ) { }
 
   @GrpcMethod('AuthService', 'Login')
   login(data: LoginRequest): Promise<LoginResponse> {
@@ -321,7 +321,7 @@ export class AuthController {
 
   @GrpcMethod('AuthService', 'GetVendorBusinessProfiles')
   async getVendorBusinessProfiles(
-    _data: {},
+    data: { pagination?: { page: number; limit: number } },
     metadata: Metadata,
   ): Promise<BusinessProfilesResponse> {
     const authResult = this.jwtAuthGuard.validateToken(metadata);
@@ -333,11 +333,18 @@ export class AuthController {
         success: false,
         profiles: [],
         total: 0,
+        page: 1,
+        limit: 20,
+        totalPages: 0,
+        hasNext: false,
+        hasPrevious: false,
       };
     }
 
+    const pagination = data.pagination || { page: 1, limit: 20 };
     return this.businessProfileService.getVendorBusinessProfiles(
       authResult.userId,
+      pagination,
     );
   }
 
