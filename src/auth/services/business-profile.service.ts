@@ -27,7 +27,7 @@ import {
 export class BusinessProfileService {
   private readonly logger = new Logger(BusinessProfileService.name);
 
-  constructor(private readonly em: EntityManager) { }
+  constructor(private readonly em: EntityManager) {}
 
   @CreateRequestContext()
   async createBusinessProfile(
@@ -289,7 +289,8 @@ export class BusinessProfileService {
 
     try {
       const page = pagination?.page || 1;
-      const limit = pagination?.limit || 20;
+      const limit =
+        pagination?.limit && pagination.limit > 0 ? pagination.limit : 10;
       const offset = (page - 1) * limit;
 
       // Get total count
@@ -309,7 +310,7 @@ export class BusinessProfileService {
         },
       );
 
-      const profileDtos = businessProfiles.map((profile) =>
+      const profileDtos = (businessProfiles || []).map((profile) =>
         this.mapToDto(profile),
       );
 
@@ -339,7 +340,7 @@ export class BusinessProfileService {
         profiles: [],
         total: 0,
         page: 1,
-        limit: 20,
+        limit: 10,
         totalPages: 0,
         hasNext: false,
         hasPrevious: false,
@@ -358,7 +359,7 @@ export class BusinessProfileService {
     try {
       const radiusKm = data.radiusKm || 10;
       const page = data.page || 1;
-      const limit = data.limit || 20;
+      const limit = data.limit || 10;
       const offset = (page - 1) * limit;
       const radiusMeters = radiusKm * 1000;
 
@@ -479,7 +480,7 @@ export class BusinessProfileService {
         profiles: [],
         total: 0,
         page: 1,
-        limit: 20,
+        limit: 10,
         totalPages: 0,
         hasNext: false,
         hasPrevious: false,
