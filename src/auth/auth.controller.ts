@@ -115,7 +115,7 @@ export class AuthController {
     private readonly businessVerificationService: BusinessVerificationService,
     private readonly getUserByIdService: GetUserByIdService,
     private readonly deleteProfileService: DeleteProfileService,
-  ) {}
+  ) { }
 
   @GrpcMethod('AuthService', 'Login')
   login(data: LoginRequest): Promise<LoginResponse> {
