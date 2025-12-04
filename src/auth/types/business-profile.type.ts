@@ -120,7 +120,7 @@ export interface BusinessProfilesResponse {
   statusCode: number;
   success: boolean;
   profiles: BusinessProfileDto[];
-  total: number;
+  total?: number;
   page?: number;
   limit?: number;
   totalPages?: number;
@@ -143,6 +143,15 @@ export interface SearchBusinessProfilesResponse {
   totalPages?: number;
   hasNext?: boolean;
   hasPrevious?: boolean;
+}
+
+export interface PaginationParams {
+  page: number;
+  limit: number;
+}
+
+export interface GetVendorBusinessProfilesDto {
+  pagination?: PaginationParams;
 }
 
 export interface PaginationParams {

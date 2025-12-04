@@ -23,7 +23,7 @@ service AuthService {
   rpc UpdateBusinessProfile (UpdateBusinessProfileDto) returns (BusinessProfileResponse) {}
   rpc GetBusinessProfile (GetBusinessProfileDto) returns (BusinessProfileResponse) {}
   rpc GetPublicBusinessProfile (GetBusinessProfileDto) returns (PublicBusinessProfileResponse) {}
-  rpc GetVendorBusinessProfiles (google.protobuf.Empty) returns (BusinessProfilesResponse) {}
+  rpc GetVendorBusinessProfiles (GetVendorBusinessProfilesDto) returns (BusinessProfilesResponse) {}
   rpc SearchBusinessProfiles (SearchBusinessProfilesDto) returns (SearchBusinessProfilesResponse) {}
   rpc InitiateIdentityVerification (InitiateIdentityVerificationDto) returns (IdentityVerificationResponse) {}
   rpc GetUserVerificationStatus (GetUserVerificationStatusDto) returns (GetUserVerificationStatusResponse) {}
@@ -37,8 +37,7 @@ message LoginDto {
 }
 
 message RefreshTokenDto {
-    string userId = 1;
-    string refreshToken = 2;
+    string refreshToken = 1;
 }
 
 message RegisterDto {
@@ -104,7 +103,7 @@ message ValidateOtpDto {
 }
 
 message GetVendorBusinessProfilesDto {
-  PaginationParams pagination = 1;
+  optional PaginationParams pagination = 1;
 }
 
 
@@ -303,12 +302,12 @@ message BusinessProfilesResponse {
   int32 statusCode = 2;
   bool success = 3;
   repeated BusinessProfileDto profiles = 4;
-  int32 total = 5;
-  int32 page = 6;
-  int32 limit = 7;
-  int32 totalPages = 8;
-  bool hasNext = 9;
-  bool hasPrevious = 10;
+  optional int32 total = 5;
+  optional int32 page = 6;
+  optional int32 limit = 7;
+  optional int32 totalPages = 8;
+  optional bool hasNext = 9;
+  optional bool hasPrevious = 10;
 }
 
 message SearchBusinessProfilesDto {
