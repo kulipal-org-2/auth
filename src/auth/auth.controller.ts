@@ -41,6 +41,7 @@ import type {
   BusinessProfilesResponse,
   CreateBusinessProfileRequest,
   GetBusinessProfileRequest,
+  GetVendorBusinessProfilesDto,
   PublicBusinessProfileResponse,
   SearchBusinessProfilesRequest,
   SearchBusinessProfilesResponse,
@@ -122,8 +123,24 @@ export class AuthController {
   }
 
   @GrpcMethod('AuthService', 'RefreshToken')
-  refreshAccessToken(data: RefreshTokenRequest): Promise<LoginResponse> {
-    return this.refreshToken.execute(data);
+  async refreshAccessToken(
+    data: RefreshTokenRequest,
+    metadata: Metadata,
+  ): Promise<LoginResponse> {
+    const authResult = this.jwtAuthGuard.validateToken(metadata);
+
+    if (!authResult.success) {
+      return {
+        success: false,
+        statusCode: 401,
+        message: authResult.message,
+        user: null,
+      };
+    }
+    return await this.refreshToken.execute(
+      authResult.userId,
+      data.refreshToken,
+    );
   }
 
   @GrpcMethod('AuthService', 'Register')
@@ -321,7 +338,7 @@ export class AuthController {
 
   @GrpcMethod('AuthService', 'GetVendorBusinessProfiles')
   async getVendorBusinessProfiles(
-    _data: {},
+    data: GetVendorBusinessProfilesDto,
     metadata: Metadata,
   ): Promise<BusinessProfilesResponse> {
     const authResult = this.jwtAuthGuard.validateToken(metadata);
@@ -332,12 +349,23 @@ export class AuthController {
         statusCode: 401,
         success: false,
         profiles: [],
-        total: 0,
       };
     }
 
+    // Ensure pagination defaults are applied correctly
+    const page =
+      data.pagination?.page && data.pagination.page > 0
+        ? data.pagination.page
+        : 1;
+    const limit =
+      data.pagination?.limit && data.pagination.limit > 0
+        ? data.pagination.limit
+        : 10;
+
+    const pagination = { page, limit };
     return this.businessProfileService.getVendorBusinessProfiles(
       authResult.userId,
+      pagination,
     );
   }
 
