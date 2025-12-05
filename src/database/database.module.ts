@@ -9,15 +9,10 @@ import { OtpRepository } from './repositories/otp.repository';
 import { BusinessProfileRepository } from './repositories/business-profile.repository';
 import { BusinessVerificationRepository } from './repositories/business-verification.repository';
 import { OperatingTimesRepository } from './repositories/operating-times.repository';
-import { WalletRepository } from './repositories/wallet.repository';
-import { WalletPinResetOtpRepository } from './repositories/wallet-pin-reset-otp.repository';
-import { Wallet } from './entities/wallet.entity';
-import { WalletPinResetOtp } from './entities/wallet-pin-reset-otp.entity';
-
 @Module({
   imports: [
     MikroOrmModule.forRootAsync(MikroOrmOptions),
-    MikroOrmModule.forFeature([User, RefreshToken, ResetPasswordToken, Otp, BusinessProfile, BusinessVerification, OperatingTimes, Wallet, WalletPinResetOtp]),
+    MikroOrmModule.forFeature([User, RefreshToken, ResetPasswordToken, Otp, BusinessProfile, BusinessVerification, OperatingTimes]),
   ],
   providers: [
     UserRepository,
@@ -27,8 +22,6 @@ import { WalletPinResetOtp } from './entities/wallet-pin-reset-otp.entity';
     BusinessProfileRepository,
     BusinessVerificationRepository,
     OperatingTimesRepository,
-    WalletRepository,
-    WalletPinResetOtpRepository
   ],
   exports: [
     UserRepository,
@@ -38,8 +31,6 @@ import { WalletPinResetOtp } from './entities/wallet-pin-reset-otp.entity';
     BusinessProfileRepository,
     BusinessVerificationRepository,
     OperatingTimesRepository,
-    WalletRepository,
-    WalletPinResetOtpRepository
   ],
 })
 export class DatabaseModule { }

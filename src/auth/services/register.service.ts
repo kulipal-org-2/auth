@@ -9,14 +9,14 @@ import { hash } from 'argon2';
 import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
 import { User, UserType } from 'src/database';
 import type { RegisterResponse } from '../types/auth.type';
-import { CreateWalletService } from 'src/wallet/services/create-wallet.service';
+import { WalletGrpcService } from './wallet-grpc.service';
 
 @Injectable()
 export class RegisterService {
   private readonly logger = new Logger(RegisterService.name);
   constructor(
     private readonly em: EntityManager,
-    private readonly createWalletService: CreateWalletService,
+    private readonly walletGrpcService: WalletGrpcService,
   ) { }
 
   @CreateRequestContext()
@@ -96,7 +96,7 @@ export class RegisterService {
     );
 
     try {
-      const walletResult = await this.createWalletService.execute(user.id);
+      const walletResult = await this.walletGrpcService.createWallet(user.id);
 
       if (walletResult.success) {
         this.logger.log(
