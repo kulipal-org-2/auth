@@ -18,6 +18,8 @@ service AuthService {
   rpc SendSmsOtp (SendSmsOtpDto) returns (MessageResponse) {}
   rpc ValidateOtp (ValidateOtpDto) returns (ValidateOtpResponse) {}
   rpc GetProfile (google.protobuf.Empty) returns (ProfileResponse) {}
+  rpc GetUserInfo(GetUserInfoRequest) returns (GetUserInfoResponse);
+  rpc ValidatePassword(ValidatePasswordRequest) returns (ValidatePasswordResponse);
   rpc UpdateProfile (UpdateProfileDto) returns (ProfileResponse) {}
   rpc CreateBusinessProfile (CreateBusinessProfileDto) returns (BusinessProfileResponse) {}
   rpc UpdateBusinessProfile (UpdateBusinessProfileDto) returns (BusinessProfileResponse) {}
@@ -399,4 +401,37 @@ message GetUserByIdDto {
 message PaginationParams {
   int32 page = 1;
   int32 limit = 2;
+}
+
+message GetUserInfoRequest {
+  string userId = 1;
+}
+
+message GetUserInfoResponse {
+  bool success = 1;
+  int32 statusCode = 2;
+  string message = 3;
+  optional UserInfo user = 4;
+}
+
+message UserInfo {
+  string id = 1;
+  string email = 2;
+  string firstName = 3;
+  string lastName = 4;
+  bool isEmailVerified = 5;
+  bool isPhoneVerified = 6;
+}
+
+message ValidatePasswordRequest {
+  string userId = 1;
+  string password = 2;
+}
+
+message ValidatePasswordResponse {
+  bool success = 1;
+  int32 statusCode = 2;
+  string message = 3;
+  bool isValid = 4;
+  bool isOAuthUser = 5;
 }

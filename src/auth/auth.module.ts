@@ -27,7 +27,9 @@ import { KycService } from 'src/smile-identity/services/kyc/kyc.service';
 import { KybService } from 'src/smile-identity/services/kyb/kyb.service';
 import { SmileCoreService } from 'src/smile-identity/services/smile-core.service';
 import { BusinessVerificationService } from 'src/smile-identity/services/kyb/business-verification.service';
-import { WalletModule } from 'src/wallet/wallet.module';
+import { WalletGrpcService } from './services/wallet-grpc.service';
+import { GetUserInfoGrpcService } from './services/get-user-info-grpc.service';
+import { ValidatePasswordGrpcService } from './services/validate-password-grpc.service';
 
 @Module({
   imports: [
@@ -45,8 +47,16 @@ import { WalletModule } from 'src/wallet/wallet.module';
           url: process.env.NOTIFICATION_GRPC_URL,
         },
       },
+      {
+        name: 'WALLET_PACKAGE',
+        transport: Transport.GRPC,
+        options: {
+          package: 'wallet',
+          protoPath: join(__dirname, '..', 'proto/wallet.proto'),
+          url: process.env.PAYMENT_GRPC_URL,
+        },
+      },
     ]),
-    WalletModule,
   ],
   controllers: [AuthController],
   providers: [
@@ -73,7 +83,10 @@ import { WalletModule } from 'src/wallet/wallet.module';
     KybService,
     VerificationOrchestratorService,
     BusinessVerificationService,
+    WalletGrpcService,
+    GetUserInfoGrpcService,
+    ValidatePasswordGrpcService,
   ],
-  exports: [NotificationService],
+  exports: [NotificationService, WalletGrpcService],
 })
 export class AuthModule { }
