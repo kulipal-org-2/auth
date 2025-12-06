@@ -151,3 +151,8 @@ export interface PaginationParams {
 export interface GetVendorBusinessProfilesDto {
   pagination?: PaginationParams;
 }
+
+export interface PaginationParams {
+  page: number;
+  limit: number;
+}

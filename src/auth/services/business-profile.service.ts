@@ -32,7 +32,7 @@ import {
 export class BusinessProfileService {
   private readonly logger = new Logger(BusinessProfileService.name);
 
-  constructor(private readonly em: EntityManager) {}
+  constructor(private readonly em: EntityManager) { }
 
   @CreateRequestContext()
   async createBusinessProfile(

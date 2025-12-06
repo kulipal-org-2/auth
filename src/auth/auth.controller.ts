@@ -53,6 +53,8 @@ import { GetUserByIdService } from './services/get-user-by-id.service';
 import { DeleteProfileService } from './services/delete-profile.service';
 import { VerificationOrchestratorService } from 'src/smile-identity/services/verification-orchestrator.service';
 import { BusinessVerificationService } from 'src/smile-identity/services/kyb/business-verification.service';
+import { GetUserInfoGrpcService } from './services/get-user-info-grpc.service';
+import { ValidatePasswordGrpcService } from './services/validate-password-grpc.service';
 
 interface InitiateIdentityVerificationRequest {
   verificationType: 'KYC' | 'KYB';
@@ -115,7 +117,9 @@ export class AuthController {
     private readonly businessVerificationService: BusinessVerificationService,
     private readonly getUserByIdService: GetUserByIdService,
     private readonly deleteProfileService: DeleteProfileService,
-  ) {}
+    private readonly getUserInfoGrpcService: GetUserInfoGrpcService,
+    private readonly validatePasswordGrpcService: ValidatePasswordGrpcService,
+  ) { }
 
   @GrpcMethod('AuthService', 'Login')
   login(data: LoginRequest): Promise<LoginResponse> {
@@ -217,6 +221,16 @@ export class AuthController {
     }
 
     return this.getProfileService.execute(authResult.userId);
+  }
+
+  @GrpcMethod('AuthService', 'GetUserInfo')
+  async getUserInfo(data: { userId: string }) {
+    return this.getUserInfoGrpcService.execute(data.userId);
+  }
+
+  @GrpcMethod('AuthService', 'ValidatePassword')
+  async validatePassword(data: { userId: string; password: string }) {
+    return this.validatePasswordGrpcService.execute(data.userId, data.password);
   }
 
   @GrpcMethod('AuthService', 'UpdateProfile')

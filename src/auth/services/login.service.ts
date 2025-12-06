@@ -1,4 +1,4 @@
-// src/auth/services/login.service.ts
+// auth-service/src/auth/services/login.service.ts
 import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -7,7 +7,7 @@ import { createHash, randomBytes } from 'crypto';
 import { CustomLogger as Logger } from 'kulipal-shared';
 import { BusinessProfile, RefreshToken, User, UserType } from 'src/database';
 import type { BusinessProfileSummary, LoginResponse, RegisteredUser } from '../types/auth.type';
-import { Wallet } from 'src/database/entities/wallet.entity';
+import { WalletGrpcService } from './wallet-grpc.service'; // Add this
 
 export type LoginType = {
   email: string;
@@ -21,6 +21,7 @@ export class LoginService {
   constructor(
     private readonly em: EntityManager,
     private jwtService: JwtService,
+    private readonly walletGrpcService: WalletGrpcService, // Inject this
   ) { }
 
   @CreateRequestContext()
@@ -111,26 +112,30 @@ export class LoginService {
       }
     }
 
+    // Fetch wallet info via gRPC call to payment service
     let walletInfo: RegisteredUser['wallet'] | undefined;
     try {
-      const wallet = await this.em.findOne(Wallet, { user: existingUser.id });
-      if (wallet) {
+      const walletResponse = await this.walletGrpcService.getWallet(existingUser.id);
+      
+      if (walletResponse.success && walletResponse.wallet) {
         walletInfo = {
-          id: wallet.id,
-          accountNumber: wallet.accountNumber,
-          balance: Number(wallet.balance),
-          currency: wallet.currency,
-          isPinSet: wallet.isPinSet,
-          isActive: wallet.isActive,
+          id: walletResponse.wallet.id,
+          accountNumber: walletResponse.wallet.accountNumber,
+          balance: walletResponse.wallet.balance,
+          currency: walletResponse.wallet.currency,
+          isPinSet: walletResponse.wallet.isPinSet,
+          isActive: walletResponse.wallet.isActive,
         };
         this.logger.log(`Fetched wallet info for user ${existingUser.id}`);
       } else {
-        this.logger.warn(`No wallet found for user ${existingUser.id}`);
+        this.logger.warn(`No wallet found or failed to fetch wallet for user ${existingUser.id}: ${walletResponse.message}`);
       }
     } catch (walletError: any) {
       this.logger.error(
-        `Error fetching wallet for user ${existingUser.id}: ${walletError.message}`,
+        `Error fetching wallet for user ${existingUser.id}: ${walletError?.message ?? walletError}`,
+        walletError?.stack,
       );
+      // Don't fail login if wallet fetch fails
     }
 
     const userPayload: RegisteredUser = {
