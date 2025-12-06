@@ -302,12 +302,7 @@ message BusinessProfilesResponse {
   int32 statusCode = 2;
   bool success = 3;
   repeated BusinessProfileDto profiles = 4;
-  optional int32 total = 5;
-  optional int32 page = 6;
-  optional int32 limit = 7;
-  optional int32 totalPages = 8;
-  optional bool hasNext = 9;
-  optional bool hasPrevious = 10;
+  optional PaginationMeta meta = 5;
 }
 
 message SearchBusinessProfilesDto {
@@ -315,8 +310,8 @@ message SearchBusinessProfilesDto {
   double longitude = 2;
   double radiusKm = 3;
   string industry = 4;
-  int32 limit = 5;
-  int32 offset = 6;
+  optional int32 page = 5;
+  optional int32 limit = 6;
 }
 
 message BusinessProfileDistanceDto {
@@ -340,12 +335,7 @@ message SearchBusinessProfilesResponse {
   int32 statusCode = 2;
   bool success = 3;
   repeated BusinessProfileDistanceDto profiles = 4;
-  int32 total = 5;
-  int32 page = 6;
-  int32 limit = 7;
-  int32 totalPages = 8;
-  bool hasNext = 9;
-  bool hasPrevious = 10;
+  optional PaginationMeta meta = 5;
 }
 
 message InitiateIdentityVerificationDto {
@@ -399,4 +389,14 @@ message GetUserByIdDto {
 message PaginationParams {
   int32 page = 1;
   int32 limit = 2;
+}
+
+// Pagination metadata
+message PaginationMeta {
+  int32 total = 1;
+  int32 page = 2;
+  int32 limit = 3;
+  int32 totalPages = 4;
+  bool hasNext = 5;
+  bool hasPrevious = 6;
 }

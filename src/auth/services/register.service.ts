@@ -128,6 +128,9 @@ export class RegisterService {
         isEmailVerified: Boolean(user.isEmailVerified),
         isPhoneVerified: Boolean(user.isPhoneVerified),
         source: user.source ?? undefined,
+        businessProfiles: [],
+        isIdentityVerified: Boolean(user.isIdentityVerified),
+        identityVerificationType: user.identityVerificationType ?? undefined,
       },
     };
   }

@@ -4,7 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { CustomLogger as Logger } from 'kulipal-shared';
 import { createHash, randomBytes } from 'crypto';
 import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
-import { RefreshToken, User, BusinessProfile } from 'src/database';
+import { RefreshToken, User, BusinessProfile, UserType } from 'src/database';
 import type {
   LoginResponse,
   RefreshTokenRequest,
@@ -79,7 +79,7 @@ export class RefreshAccessTokenService {
     if (user) {
       // Fetch ALL business profiles if user is a vendor
       let businessProfiles: BusinessProfileSummary[] = [];
-      if (user.userType === 'vendor') {
+      if (user.userType === UserType.VENDOR) {
         const profiles = await this.em.find(
           BusinessProfile,
           { user: user.id },

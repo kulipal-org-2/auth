@@ -5,7 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import { verify } from 'argon2';
 import { createHash, randomBytes } from 'crypto';
 import { CustomLogger as Logger } from 'kulipal-shared';
-import { BusinessProfile, RefreshToken, User } from 'src/database';
+import { BusinessProfile, RefreshToken, User, UserType } from 'src/database';
 import type { BusinessProfileSummary, LoginResponse, RegisteredUser } from '../types/auth.type';
 import { Wallet } from 'src/database/entities/wallet.entity';
 
@@ -75,7 +75,7 @@ export class LoginService {
     const credentials = await this.generateCredentials(existingUser.id);
 
     let businessProfiles: BusinessProfileSummary[] = [];
-    if (existingUser.userType === 'vendor') {
+    if (existingUser.userType === UserType.VENDOR) {
       this.logger.log(`User is a vendor, fetching all business profiles`);
       const profiles = await this.em.find(
         BusinessProfile,

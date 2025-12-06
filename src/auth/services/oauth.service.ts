@@ -7,7 +7,7 @@ import { default as jwksClient } from 'jwks-rsa';
 import { APPLE_ISSUER, JWKS_URI } from 'src/constants';
 import { CustomLogger as Logger } from 'kulipal-shared';
 import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
-import { BusinessProfile, RefreshToken, User } from 'src/database';
+import { BusinessProfile, RefreshToken, User, UserType } from 'src/database';
 import { createHash, randomBytes } from 'crypto';
 import type { BusinessProfileSummary, LoginResponse, RegisteredUser } from '../types/auth.type';
 import { type LoginGoogleRequest } from '../types/auth.type';
@@ -155,7 +155,7 @@ export class OauthService {
 
     // Fetch ALL business profiles if user is a vendor
     let businessProfiles: BusinessProfileSummary[] = [];
-    if (existingUser.userType === 'vendor') {
+    if (existingUser.userType === UserType.VENDOR) {
       const profiles = await this.em.find(
         BusinessProfile,
         { user: existingUser.id },

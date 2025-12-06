@@ -22,6 +22,11 @@ import {
   User,
   UserType,
 } from 'src/database/entities';
+import {
+  paginate,
+  PaginatedResponse,
+  createPaginationMeta,
+} from 'src/lib/utils/pagination.util';
 
 @Injectable()
 export class BusinessProfileService {
@@ -288,45 +293,28 @@ export class BusinessProfileService {
     this.logger.log(`Fetching business profiles for vendor: ${userId}`);
 
     try {
-      const page = pagination?.page || 1;
-      const limit =
-        pagination?.limit && pagination.limit > 0 ? pagination.limit : 10;
-      const offset = (page - 1) * limit;
-
-      // Get total count
-      const total = await this.em.count(BusinessProfile, {
-        user: { id: userId },
-      });
-
-      // Get paginated results
-      const businessProfiles = await this.em.find(
+      const result = await paginate<BusinessProfile>(
+        this.em,
         BusinessProfile,
         { user: { id: userId } },
         {
-          populate: ['operatingTimes'],
-          limit,
-          offset,
+          page: pagination?.page,
+          limit: pagination?.limit,
           orderBy: { createdAt: 'DESC' },
+          populate: ['operatingTimes'],
         },
       );
 
-      const profileDtos = (businessProfiles || []).map((profile) =>
+      const profileDtos = (result.data || []).map((profile) =>
         this.mapToDto(profile),
       );
-
-      const totalPages = Math.ceil(total / limit);
 
       return {
         message: 'Business profiles retrieved successfully',
         statusCode: HttpStatus.OK,
         success: true,
-        profiles: profileDtos,
-        total,
-        page,
-        limit,
-        totalPages,
-        hasNext: page < totalPages,
-        hasPrevious: page > 1,
+        profiles: profileDtos.length > 0 ? profileDtos : [],
+        meta: result.meta,
       };
     } catch (error: any) {
       this.logger.error(
@@ -338,12 +326,14 @@ export class BusinessProfileService {
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
         success: false,
         profiles: [],
-        total: 0,
-        page: 1,
-        limit: 10,
-        totalPages: 0,
-        hasNext: false,
-        hasPrevious: false,
+        meta: {
+          total: 0,
+          page: 1,
+          limit: 10,
+          totalPages: 0,
+          hasNext: false,
+          hasPrevious: false,
+        },
       };
     }
   }
@@ -456,17 +446,14 @@ export class BusinessProfileService {
         distanceKm: Number(parseFloat(p.distance_km).toFixed(2)),
       }));
 
+      const { meta } = createPaginationMeta(total, page, limit);
+
       return {
         message: 'Business profiles retrieved successfully',
         statusCode: HttpStatus.OK,
         success: true,
         profiles: profileDtos,
-        total,
-        page,
-        limit,
-        totalPages,
-        hasNext: page < totalPages,
-        hasPrevious: page > 1,
+        meta,
       };
     } catch (error: any) {
       this.logger.error(
@@ -478,12 +465,14 @@ export class BusinessProfileService {
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
         success: false,
         profiles: [],
-        total: 0,
-        page: 1,
-        limit: 10,
-        totalPages: 0,
-        hasNext: false,
-        hasPrevious: false,
+        meta: {
+          total: 0,
+          page: 1,
+          limit: 10,
+          totalPages: 0,
+          hasNext: false,
+          hasPrevious: false,
+        },
       };
     }
   }
