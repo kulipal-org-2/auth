@@ -1,8 +1,12 @@
 import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { CustomLogger as Logger } from 'kulipal-shared';
-import { User } from 'src/database';
-import type { ProfileResponse, RegisteredUser } from '../types/auth.type';
+import { User, BusinessProfile, UserType } from 'src/database';
+import type {
+  ProfileResponse,
+  RegisteredUser,
+  BusinessProfileSummary,
+} from '../types/auth.type';
 
 @Injectable()
 export class GetProfileService {
@@ -27,6 +31,36 @@ export class GetProfileService {
         };
       }
 
+      let businessProfiles: BusinessProfileSummary[] = [];
+      if (user.userType === UserType.VENDOR) {
+        const profiles = await this.em.find(
+          BusinessProfile,
+          { user: user.id },
+          { orderBy: { createdAt: 'DESC' } },
+        );
+
+        if (profiles && profiles.length > 0) {
+          businessProfiles = profiles.map((profile) => ({
+            id: profile.id,
+            businessName: profile.businessName,
+            industry: profile.industry,
+            isThirdPartyVerified: profile.isThirdPartyVerified ?? false,
+            isKycVerified: profile.isKycVerified ?? false,
+            coverImageUrl: profile.coverImageUrl,
+            description: profile.description,
+            serviceModes: profile.serviceModes,
+            location: {
+              placeId: profile.placeId,
+              lat: profile.latitude,
+              long: profile.longitude,
+              stringAddress: profile.stringAddress,
+            },
+            createdAt: profile.createdAt,
+            updatedAt: profile.updatedAt,
+          }));
+        }
+      }
+
       const userPayload: RegisteredUser = {
         id: user.id,
         firstName: user.firstName,
@@ -38,6 +72,7 @@ export class GetProfileService {
         isPhoneVerified: Boolean(user.isPhoneVerified),
         avatarUrl: user.avatarUrl ?? undefined,
         source: user.source ?? undefined,
+        businessProfiles,
         isIdentityVerified: Boolean(user.isIdentityVerified),
         identityVerificationType: user.identityVerificationType ?? undefined,
       };

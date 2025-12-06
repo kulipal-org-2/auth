@@ -1,12 +1,13 @@
-// src/auth/services/login.service.ts
+// auth-service/src/auth/services/login.service.ts
 import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { verify } from 'argon2';
 import { createHash, randomBytes } from 'crypto';
 import { CustomLogger as Logger } from 'kulipal-shared';
-import { BusinessProfile, RefreshToken, User } from 'src/database';
+import { BusinessProfile, RefreshToken, User, UserType } from 'src/database';
 import type { BusinessProfileSummary, LoginResponse, RegisteredUser } from '../types/auth.type';
+import { WalletGrpcService } from './wallet-grpc.service'; // Add this
 
 export type LoginType = {
   email: string;
@@ -20,7 +21,8 @@ export class LoginService {
   constructor(
     private readonly em: EntityManager,
     private jwtService: JwtService,
-  ) {}
+    private readonly walletGrpcService: WalletGrpcService, // Inject this
+  ) { }
 
   @CreateRequestContext()
   async execute(data: LoginType): Promise<LoginResponse> {
@@ -72,14 +74,14 @@ export class LoginService {
     );
 
     const credentials = await this.generateCredentials(existingUser.id);
-    
+
     let businessProfiles: BusinessProfileSummary[] = [];
-    if (existingUser.userType === 'vendor') {
+    if (existingUser.userType === UserType.VENDOR) {
       this.logger.log(`User is a vendor, fetching all business profiles`);
       const profiles = await this.em.find(
         BusinessProfile,
         { user: existingUser.id },
-        { 
+        {
           orderBy: { createdAt: 'DESC' },
           populate: ['operatingTimes']
         }
@@ -110,6 +112,32 @@ export class LoginService {
       }
     }
 
+    // Fetch wallet info via gRPC call to payment service
+    let walletInfo: RegisteredUser['wallet'] | undefined;
+    try {
+      const walletResponse = await this.walletGrpcService.getWallet(existingUser.id);
+      
+      if (walletResponse.success && walletResponse.wallet) {
+        walletInfo = {
+          id: walletResponse.wallet.id,
+          accountNumber: walletResponse.wallet.accountNumber,
+          balance: walletResponse.wallet.balance,
+          currency: walletResponse.wallet.currency,
+          isPinSet: walletResponse.wallet.isPinSet,
+          isActive: walletResponse.wallet.isActive,
+        };
+        this.logger.log(`Fetched wallet info for user ${existingUser.id}`);
+      } else {
+        this.logger.warn(`No wallet found or failed to fetch wallet for user ${existingUser.id}: ${walletResponse.message}`);
+      }
+    } catch (walletError: any) {
+      this.logger.error(
+        `Error fetching wallet for user ${existingUser.id}: ${walletError?.message ?? walletError}`,
+        walletError?.stack,
+      );
+      // Don't fail login if wallet fetch fails
+    }
+
     const userPayload: RegisteredUser = {
       id: existingUser.id,
       firstName: existingUser.firstName,
@@ -124,6 +152,7 @@ export class LoginService {
       businessProfiles,
       isIdentityVerified: Boolean(existingUser.isIdentityVerified),
       identityVerificationType: existingUser.identityVerificationType ?? undefined,
+      wallet: walletInfo,
     };
 
     return {
@@ -134,7 +163,7 @@ export class LoginService {
       user: userPayload,
     };
   }
-  
+
   async generateCredentials(userId: string) {
     const accessToken = this.jwtService.sign({ userId }, { expiresIn: '1h' });
     const refreshToken = randomBytes(32).toString('base64url');

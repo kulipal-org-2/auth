@@ -9,6 +9,7 @@ import type {
   GetBusinessProfileRequest,
   OperatingTimesDto,
   OperatingTimesInput,
+  PaginationParams,
   PublicBusinessProfileDto,
   PublicBusinessProfileResponse,
   SearchBusinessProfilesRequest,
@@ -21,12 +22,17 @@ import {
   User,
   UserType,
 } from 'src/database/entities';
+import {
+  paginate,
+  PaginatedResponse,
+  createPaginationMeta,
+} from 'src/lib/utils/pagination.util';
 
 @Injectable()
 export class BusinessProfileService {
   private readonly logger = new Logger(BusinessProfileService.name);
 
-  constructor(private readonly em: EntityManager) {}
+  constructor(private readonly em: EntityManager) { }
 
   @CreateRequestContext()
   async createBusinessProfile(
@@ -282,17 +288,24 @@ export class BusinessProfileService {
   @CreateRequestContext()
   async getVendorBusinessProfiles(
     userId: string,
+    pagination?: PaginationParams,
   ): Promise<BusinessProfilesResponse> {
     this.logger.log(`Fetching business profiles for vendor: ${userId}`);
 
     try {
-      const businessProfiles = await this.em.find(
+      const result = await paginate<BusinessProfile>(
+        this.em,
         BusinessProfile,
         { user: { id: userId } },
-        { populate: ['operatingTimes'] },
+        {
+          page: pagination?.page,
+          limit: pagination?.limit,
+          orderBy: { createdAt: 'DESC' },
+          populate: ['operatingTimes'],
+        },
       );
 
-      const profileDtos = businessProfiles.map((profile) =>
+      const profileDtos = (result.data || []).map((profile) =>
         this.mapToDto(profile),
       );
 
@@ -300,8 +313,8 @@ export class BusinessProfileService {
         message: 'Business profiles retrieved successfully',
         statusCode: HttpStatus.OK,
         success: true,
-        profiles: profileDtos,
-        total: profileDtos.length,
+        profiles: profileDtos.length > 0 ? profileDtos : [],
+        meta: result.meta,
       };
     } catch (error: any) {
       this.logger.error(
@@ -313,7 +326,14 @@ export class BusinessProfileService {
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
         success: false,
         profiles: [],
-        total: 0,
+        meta: {
+          total: 0,
+          page: 1,
+          limit: 10,
+          totalPages: 0,
+          hasNext: false,
+          hasPrevious: false,
+        },
       };
     }
   }
@@ -328,8 +348,9 @@ export class BusinessProfileService {
 
     try {
       const radiusKm = data.radiusKm || 10;
-      const limit = data.limit || 20;
-      const offset = data.offset || 0;
+      const page = data.page || 1;
+      const limit = data.limit || 10;
+      const offset = (page - 1) * limit;
       const radiusMeters = radiusKm * 1000;
 
       let whereClause = `location IS NOT NULL 
@@ -369,11 +390,11 @@ export class BusinessProfileService {
     `;
 
       this.logger.log(
-        `Executing search query with radius: ${radiusKm}km, limit: ${limit}, offset: ${offset}`,
+        `Executing search query with radius: ${radiusKm}km, page: ${page}, limit: ${limit}`,
       );
       const profiles = await this.em.getConnection().execute(query, params);
 
-      // Count query parameters
+      // Count query
       const countParams: (number | string)[] = [
         ...(data.industry ? [data.industry] : []),
         data.longitude,
@@ -396,42 +417,43 @@ export class BusinessProfileService {
         .getConnection()
         .execute(countQuery, countParams);
       const total = parseInt(countResult[0]?.total || '0');
+      const totalPages = Math.ceil(total / limit);
 
       this.logger.log(
-        `Found ${profiles.length} profiles out of ${total} total`,
+        `Found ${profiles.length} profiles out of ${total} total (Page ${page}/${totalPages})`,
       );
 
       // Map results to DTOs
-      const profileDtos: BusinessProfileDistanceDto[] = profiles.map(
-        (p: any) => ({
-          id: p.id,
-          userId: p.user_id,
-          businessName: p.business_name,
-          industry: p.industry,
-          description: p.description,
-          location: {
-            placeId: p.place_id,
-            lat: parseFloat(p.latitude),
-            long: parseFloat(p.longitude),
-            stringAddress: p.string_address,
-          },
-          serviceModes: p.service_modes,
-          coverImageUrl: p.cover_image_url,
-          isThirdPartyVerified: p.is_third_party_verified,
-          isKycVerified: p.is_kyc_verified,
-          operatingTimes: [], // Can be populated if needed
-          createdAt: p.created_at,
-          updatedAt: p.updated_at,
-          distanceKm: Number(parseFloat(p.distance_km).toFixed(2)),
-        }),
-      );
+      const profileDtos = profiles.map((p: any) => ({
+        id: p.id,
+        userId: p.user_id,
+        businessName: p.business_name,
+        industry: p.industry,
+        description: p.description,
+        location: {
+          placeId: p.place_id,
+          lat: parseFloat(p.latitude),
+          long: parseFloat(p.longitude),
+          stringAddress: p.string_address,
+        },
+        serviceModes: p.service_modes,
+        coverImageUrl: p.cover_image_url,
+        isThirdPartyVerified: p.is_third_party_verified,
+        isKycVerified: p.is_kyc_verified,
+        operatingTimes: [],
+        createdAt: p.created_at,
+        updatedAt: p.updated_at,
+        distanceKm: Number(parseFloat(p.distance_km).toFixed(2)),
+      }));
+
+      const { meta } = createPaginationMeta(total, page, limit);
 
       return {
         message: 'Business profiles retrieved successfully',
         statusCode: HttpStatus.OK,
         success: true,
         profiles: profileDtos,
-        total,
+        meta,
       };
     } catch (error: any) {
       this.logger.error(
@@ -443,7 +465,14 @@ export class BusinessProfileService {
         statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
         success: false,
         profiles: [],
-        total: 0,
+        meta: {
+          total: 0,
+          page: 1,
+          limit: 10,
+          totalPages: 0,
+          hasNext: false,
+          hasPrevious: false,
+        },
       };
     }
   }

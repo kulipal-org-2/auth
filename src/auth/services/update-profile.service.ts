@@ -1,11 +1,12 @@
 import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { CustomLogger as Logger } from 'kulipal-shared';
-import { User } from 'src/database';
+import { User, BusinessProfile, UserType } from 'src/database';
 import type {
   ProfileResponse,
   RegisteredUser,
   UpdateProfileRequest,
+  BusinessProfileSummary,
 } from '../types/auth.type';
 
 @Injectable()
@@ -54,6 +55,36 @@ export class UpdateProfileService {
         this.logger.log(`Successfully updated profile for user: ${userId}`);
       }
 
+      let businessProfiles: BusinessProfileSummary[] = [];
+      if (user.userType === UserType.VENDOR) {
+        const profiles = await this.em.find(
+          BusinessProfile,
+          { user: user.id },
+          { orderBy: { createdAt: 'DESC' } },
+        );
+
+        if (profiles && profiles.length > 0) {
+          businessProfiles = profiles.map((profile) => ({
+            id: profile.id,
+            businessName: profile.businessName,
+            industry: profile.industry,
+            isThirdPartyVerified: profile.isThirdPartyVerified ?? false,
+            isKycVerified: profile.isKycVerified ?? false,
+            coverImageUrl: profile.coverImageUrl,
+            description: profile.description,
+            serviceModes: profile.serviceModes,
+            location: {
+              placeId: profile.placeId,
+              lat: profile.latitude,
+              long: profile.longitude,
+              stringAddress: profile.stringAddress,
+            },
+            createdAt: profile.createdAt,
+            updatedAt: profile.updatedAt,
+          }));
+        }
+      }
+
       const userPayload: RegisteredUser = {
         id: user.id,
         firstName: user.firstName,
@@ -65,6 +96,7 @@ export class UpdateProfileService {
         isPhoneVerified: Boolean(user.isPhoneVerified),
         source: user.source ?? undefined,
         avatarUrl: user.avatarUrl ?? undefined,
+        businessProfiles,
         isIdentityVerified: Boolean(user.isIdentityVerified),
         identityVerificationType: user.identityVerificationType ?? undefined,
       };
