@@ -18,12 +18,14 @@ service AuthService {
   rpc SendSmsOtp (SendSmsOtpDto) returns (MessageResponse) {}
   rpc ValidateOtp (ValidateOtpDto) returns (ValidateOtpResponse) {}
   rpc GetProfile (google.protobuf.Empty) returns (ProfileResponse) {}
+  rpc GetUserInfo(GetUserInfoRequest) returns (GetUserInfoResponse);
+  rpc ValidatePassword(ValidatePasswordRequest) returns (ValidatePasswordResponse);
   rpc UpdateProfile (UpdateProfileDto) returns (ProfileResponse) {}
   rpc CreateBusinessProfile (CreateBusinessProfileDto) returns (BusinessProfileResponse) {}
   rpc UpdateBusinessProfile (UpdateBusinessProfileDto) returns (BusinessProfileResponse) {}
   rpc GetBusinessProfile (GetBusinessProfileDto) returns (BusinessProfileResponse) {}
   rpc GetPublicBusinessProfile (GetBusinessProfileDto) returns (PublicBusinessProfileResponse) {}
-  rpc GetVendorBusinessProfiles (google.protobuf.Empty) returns (BusinessProfilesResponse) {}
+  rpc GetVendorBusinessProfiles (GetVendorBusinessProfilesDto) returns (BusinessProfilesResponse) {}
   rpc SearchBusinessProfiles (SearchBusinessProfilesDto) returns (SearchBusinessProfilesResponse) {}
   rpc InitiateIdentityVerification (InitiateIdentityVerificationDto) returns (IdentityVerificationResponse) {}
   rpc GetUserVerificationStatus (GetUserVerificationStatusDto) returns (GetUserVerificationStatusResponse) {}
@@ -37,8 +39,7 @@ message LoginDto {
 }
 
 message RefreshTokenDto {
-    string userId = 1;
-    string refreshToken = 2;
+    string refreshToken = 1;
 }
 
 message RegisterDto {
@@ -49,6 +50,17 @@ message RegisterDto {
   bool agreeToTerms = 5;
   string phoneNumber = 6;
   optional string source = 7;
+}
+
+message WalletDto {
+  string id = 1;
+  string accountNumber = 2;
+  double balance = 3;
+  string currency = 4;
+  bool isPinSet = 5;
+  bool isActive = 6;
+  optional string lastTransactionAt = 7;
+  string createdAt = 8;
 }
 
 message LoginGoogleDto {
@@ -94,6 +106,11 @@ message ValidateOtpDto {
   string token = 3;
 }
 
+message GetVendorBusinessProfilesDto {
+  optional PaginationParams pagination = 1;
+}
+
+
 
 message UpdateProfileDto {
   optional string firstName = 1;
@@ -129,6 +146,7 @@ message UserDto {
   repeated BusinessProfileSummaryDto businessProfiles = 11;
   bool isIdentityVerified = 12;
   optional string identityVerificationType = 13;
+  optional WalletDto wallet = 14;
 }
 message MessageResponse {
   string message = 1;
@@ -288,7 +306,7 @@ message BusinessProfilesResponse {
   int32 statusCode = 2;
   bool success = 3;
   repeated BusinessProfileDto profiles = 4;
-  int32 total = 5;
+  optional PaginationMeta meta = 5;
 }
 
 message SearchBusinessProfilesDto {
@@ -296,8 +314,8 @@ message SearchBusinessProfilesDto {
   double longitude = 2;
   double radiusKm = 3;
   string industry = 4;
-  int32 limit = 5;
-  int32 offset = 6;
+  optional int32 page = 5;
+  optional int32 limit = 6;
 }
 
 message BusinessProfileDistanceDto {
@@ -321,7 +339,7 @@ message SearchBusinessProfilesResponse {
   int32 statusCode = 2;
   bool success = 3;
   repeated BusinessProfileDistanceDto profiles = 4;
-  int32 total = 5;
+  optional PaginationMeta meta = 5;
 }
 
 message InitiateIdentityVerificationDto {
@@ -370,4 +388,51 @@ message GetUserVerificationStatusResponse {
 
 message GetUserByIdDto {
   string userId = 1;
+}
+
+message PaginationParams {
+  int32 page = 1;
+  int32 limit = 2;
+}
+
+message PaginationMeta {
+  int32 total = 1;
+  int32 page = 2;
+  int32 limit = 3;
+  int32 totalPages = 4;
+  bool hasNext = 5;
+  bool hasPrevious = 6;
+}
+
+message GetUserInfoRequest {
+  string userId = 1;
+}
+
+message GetUserInfoResponse {
+  bool success = 1;
+  int32 statusCode = 2;
+  string message = 3;
+  optional UserInfo user = 4;
+}
+
+message UserInfo {
+  string id = 1;
+  string email = 2;
+  string firstName = 3;
+  string lastName = 4;
+  bool isEmailVerified = 5;
+  bool isPhoneVerified = 6;
+}
+
+message ValidatePasswordRequest {
+  string userId = 1;
+  string password = 2;
+}
+
+message ValidatePasswordResponse {
+  bool success = 1;
+  int32 statusCode = 2;
+  string message = 3;
+  bool isValid = 4;
+  bool isOAuthUser = 5;
 }

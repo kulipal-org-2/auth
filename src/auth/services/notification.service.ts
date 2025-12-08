@@ -13,7 +13,7 @@ export class NotificationService implements OnModuleInit {
   constructor(
     @Inject('NOTIFICATION_PACKAGE')
     private readonly grpcClient: ClientGrpc,
-  ) {}
+  ) { }
 
   onModuleInit() {
     this.notificationClient =
@@ -117,6 +117,48 @@ export class NotificationService implements OnModuleInit {
         `Failed to dispatch password reset email for user ${user.id}: ${error?.message ?? error}`,
       );
       // Re-throw the error so the caller can handle it appropriately
+      throw error;
+    }
+  }
+
+  async sendWalletPinResetOtp({
+    user,
+    otp,
+    validityMinutes,
+  }: {
+    user: User;
+    otp: string;
+    validityMinutes: number;
+  }): Promise<void> {
+    if (!this.notificationClient) {
+      this.logger.error('Notification service client is not available');
+      throw new Error('Notification service is unavailable');
+    }
+
+    try {
+      const username = user.firstName;
+
+      await lastValueFrom(
+        this.notificationClient.Email({
+          template: 'wallet-pin-reset-otp',
+          subject: 'Wallet PIN Reset - OTP Verification',
+          email: user.email,
+          data: {
+            username,
+            otp,
+            validityMinutes: validityMinutes.toString(),
+            currentYear: new Date().getFullYear().toString(),
+            supportEmail: process.env.SUPPORT_EMAIL || 'support@kulipal.com',
+            appName: 'Kulipal',
+          },
+        }),
+      );
+      this.logger.log(`Wallet PIN reset OTP email dispatched to ${user.email}`);
+    } catch (error: any) {
+      this.logger.error(
+        `Failed to dispatch wallet PIN reset OTP email for user ${user.id}: ${error?.message ?? error}`,
+        error?.stack,
+      );
       throw error;
     }
   }

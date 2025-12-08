@@ -1,3 +1,4 @@
+// auth-service/src/auth/services/oauth.service.ts
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
@@ -7,10 +8,11 @@ import { default as jwksClient } from 'jwks-rsa';
 import { APPLE_ISSUER, JWKS_URI } from 'src/constants';
 import { CustomLogger as Logger } from 'kulipal-shared';
 import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
-import { BusinessProfile, RefreshToken, User } from 'src/database';
+import { BusinessProfile, RefreshToken, User, UserType } from 'src/database';
 import { createHash, randomBytes } from 'crypto';
 import type { BusinessProfileSummary, LoginResponse, RegisteredUser } from '../types/auth.type';
 import { type LoginGoogleRequest } from '../types/auth.type';
+import { WalletGrpcService } from './wallet-grpc.service'; // Add this
 
 const getOauthClient = ({
   client_id,
@@ -27,10 +29,12 @@ export class OauthService {
   private oauthClient: OAuth2Client;
   private jwksClient: any;
   private readonly logger = new Logger(OauthService.name);
+  
   constructor(
     private configService: ConfigService,
     private jwt: JwtService,
     private readonly em: EntityManager,
+    private readonly walletGrpcService: WalletGrpcService, // Inject this
   ) {
     this.oauthClient = getOauthClient({
       client_id: this.configService.get<string>('GOOGLE_CLIENT_ID') ?? '',
@@ -138,6 +142,7 @@ export class OauthService {
     const existingUser = await this.em.findOne(User, {
       email,
     });
+    
     if (!existingUser) {
       this.logger.log(`User with email: ${email} not found`);
 
@@ -154,7 +159,7 @@ export class OauthService {
 
     // Fetch ALL business profiles if user is a vendor
     let businessProfiles: BusinessProfileSummary[] = [];
-    if (existingUser.userType === 'vendor') {
+    if (existingUser.userType === UserType.VENDOR) {
       const profiles = await this.em.find(
         BusinessProfile,
         { user: existingUser.id },
@@ -183,6 +188,25 @@ export class OauthService {
       }
     }
 
+    // Fetch wallet info via gRPC call to payment service
+    let walletInfo: RegisteredUser['wallet'] | undefined;
+    try {
+      const walletResponse = await this.walletGrpcService.getWallet(existingUser.id);
+      
+      if (walletResponse.success && walletResponse.wallet) {
+        walletInfo = this.walletGrpcService.mapWalletToUserFormat(walletResponse.wallet);
+        this.logger.log(`Fetched wallet info for user ${existingUser.id}`);
+      } else {
+        this.logger.warn(`No wallet found or failed to fetch wallet for user ${existingUser.id}: ${walletResponse.message}`);
+      }
+    } catch (walletError: any) {
+      this.logger.error(
+        `Error fetching wallet for user ${existingUser.id}: ${walletError?.message ?? walletError}`,
+        walletError?.stack,
+      );
+      // Don't fail login if wallet fetch fails
+    }
+
     const userPayload: RegisteredUser = {
       id: existingUser.id,
       firstName: existingUser.firstName,
@@ -197,6 +221,7 @@ export class OauthService {
       businessProfiles,
       isIdentityVerified: Boolean(existingUser.isIdentityVerified),
       identityVerificationType: existingUser.identityVerificationType ?? undefined,
+      wallet: walletInfo,
     };
 
     return {

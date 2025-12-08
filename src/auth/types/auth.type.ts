@@ -44,10 +44,19 @@ export type RegisteredUser = {
   businessProfiles?: BusinessProfileSummary[];
   isIdentityVerified?: boolean;
   identityVerificationType?: 'KYC' | 'KYB';
+  wallet?: {
+    id: string;
+    accountNumber: string;
+    balance: number;
+    currency: string;
+    isPinSet: boolean;
+    isActive: boolean;
+    lastTransactionAt?: string;
+    createdAt: string;
+  } | {};
 };
 
 export type RefreshTokenRequest = {
-  userId: string;
   refreshToken: string;
 };
 

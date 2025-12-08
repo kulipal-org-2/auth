@@ -1,15 +1,17 @@
 import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { Otp } from 'src/database/entities/otp.entity';
-import { User } from 'src/database';
+import { User, BusinessProfile, UserType } from 'src/database';
 import type {
   ValidateOtpRequest,
   ValidateOtpResponse,
   RegisteredUser,
   LoginCredentials,
+  BusinessProfileSummary,
 } from '../types/auth.type';
 import { OtpChannel } from '../enums/otp.enum';
 import { LoginService } from './login.service';
+import { WalletGrpcService } from './wallet-grpc.service';
 
 @Injectable()
 export class ValidateOtpService {
@@ -18,6 +20,7 @@ export class ValidateOtpService {
   constructor(
     private readonly em: EntityManager,
     private readonly loginService: LoginService,
+    private readonly walletGrpcService: WalletGrpcService,
   ) {}
 
   @CreateRequestContext()
@@ -124,6 +127,55 @@ export class ValidateOtpService {
     const credentials: LoginCredentials | undefined = isVerified
       ? await this.loginService.generateCredentials(user.id)
       : undefined;
+    let businessProfiles: BusinessProfileSummary[] = [];
+    if (isVerified && user.userType === UserType.VENDOR) {
+      const profiles = await this.em.find(
+        BusinessProfile,
+        { user: user.id },
+        { orderBy: { createdAt: 'DESC' } },
+      );
+
+      if (profiles && profiles.length > 0) {
+        businessProfiles = profiles.map((profile) => ({
+          id: profile.id,
+          businessName: profile.businessName,
+          industry: profile.industry,
+          isThirdPartyVerified: profile.isThirdPartyVerified ?? false,
+          isKycVerified: profile.isKycVerified ?? false,
+          coverImageUrl: profile.coverImageUrl,
+          description: profile.description,
+          serviceModes: profile.serviceModes,
+          location: {
+            placeId: profile.placeId,
+            lat: profile.latitude,
+            long: profile.longitude,
+            stringAddress: profile.stringAddress,
+          },
+          createdAt: profile.createdAt,
+          updatedAt: profile.updatedAt,
+        }));
+      }
+    }
+
+    let walletInfo: RegisteredUser['wallet'] | undefined;
+    if (isVerified) {
+      try {
+        const walletResponse = await this.walletGrpcService.getWallet(user.id);
+        
+        if (walletResponse.success && walletResponse.wallet) {
+          walletInfo = this.walletGrpcService.mapWalletToUserFormat(walletResponse.wallet);
+          this.logger.log(`Fetched wallet info for user ${user.id}`);
+        } else {
+          this.logger.warn(`No wallet found or failed to fetch wallet for user ${user.id}: ${walletResponse.message}`);
+        }
+      } catch (walletError: any) {
+        this.logger.error(
+          `Error fetching wallet for user ${user.id}: ${walletError?.message ?? walletError}`,
+          walletError?.stack,
+        );
+      }
+    }
+
     const userPayload: RegisteredUser | null = isVerified
       ? {
           id: user.id,
@@ -136,8 +188,10 @@ export class ValidateOtpService {
           isPhoneVerified,
           avatarUrl: user.avatarUrl ?? undefined,
           source: user.source ?? undefined,
+          businessProfiles,
           isIdentityVerified: Boolean(user.isIdentityVerified),
           identityVerificationType: user.identityVerificationType ?? undefined,
+          wallet: walletInfo ?? ({} as RegisteredUser['wallet']),
         }
       : null;
 

@@ -38,8 +38,8 @@ export interface SearchBusinessProfilesRequest {
   longitude: number;
   radiusKm?: number;
   industry?: 'FOOD' | 'EVENTS' | 'HOUSING';
+  page?: number;
   limit?: number;
-  offset?: number;
 }
 
 export interface OperatingTimesInput {
@@ -114,12 +114,21 @@ export interface PublicBusinessProfileResponse {
   profile: PublicBusinessProfileDto | null;
 }
 
+export interface PaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
 export interface BusinessProfilesResponse {
   message: string;
   statusCode: number;
   success: boolean;
   profiles: BusinessProfileDto[];
-  total: number;
+  meta?: PaginationMeta;
 }
 
 export interface BusinessProfileDistanceDto extends BusinessProfileDto {
@@ -131,5 +140,19 @@ export interface SearchBusinessProfilesResponse {
   statusCode: number;
   success: boolean;
   profiles: BusinessProfileDistanceDto[];
-  total: number;
+  meta?: PaginationMeta;
+}
+
+export interface PaginationParams {
+  page: number;
+  limit: number;
+}
+
+export interface GetVendorBusinessProfilesDto {
+  pagination?: PaginationParams;
+}
+
+export interface PaginationParams {
+  page: number;
+  limit: number;
 }

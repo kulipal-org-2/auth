@@ -41,6 +41,7 @@ import type {
   BusinessProfilesResponse,
   CreateBusinessProfileRequest,
   GetBusinessProfileRequest,
+  GetVendorBusinessProfilesDto,
   PublicBusinessProfileResponse,
   SearchBusinessProfilesRequest,
   SearchBusinessProfilesResponse,
@@ -52,6 +53,8 @@ import { GetUserByIdService } from './services/get-user-by-id.service';
 import { DeleteProfileService } from './services/delete-profile.service';
 import { VerificationOrchestratorService } from 'src/smile-identity/services/verification-orchestrator.service';
 import { BusinessVerificationService } from 'src/smile-identity/services/kyb/business-verification.service';
+import { GetUserInfoGrpcService } from './services/get-user-info-grpc.service';
+import { ValidatePasswordGrpcService } from './services/validate-password-grpc.service';
 
 interface InitiateIdentityVerificationRequest {
   verificationType: 'KYC' | 'KYB';
@@ -114,7 +117,9 @@ export class AuthController {
     private readonly businessVerificationService: BusinessVerificationService,
     private readonly getUserByIdService: GetUserByIdService,
     private readonly deleteProfileService: DeleteProfileService,
-  ) {}
+    private readonly getUserInfoGrpcService: GetUserInfoGrpcService,
+    private readonly validatePasswordGrpcService: ValidatePasswordGrpcService,
+  ) { }
 
   @GrpcMethod('AuthService', 'Login')
   login(data: LoginRequest): Promise<LoginResponse> {
@@ -122,8 +127,24 @@ export class AuthController {
   }
 
   @GrpcMethod('AuthService', 'RefreshToken')
-  refreshAccessToken(data: RefreshTokenRequest): Promise<LoginResponse> {
-    return this.refreshToken.execute(data);
+  async refreshAccessToken(
+    data: RefreshTokenRequest,
+    metadata: Metadata,
+  ): Promise<LoginResponse> {
+    const authResult = this.jwtAuthGuard.validateToken(metadata);
+
+    if (!authResult.success) {
+      return {
+        success: false,
+        statusCode: 401,
+        message: authResult.message,
+        user: null,
+      };
+    }
+    return await this.refreshToken.execute(
+      authResult.userId,
+      data.refreshToken,
+    );
   }
 
   @GrpcMethod('AuthService', 'Register')
@@ -200,6 +221,16 @@ export class AuthController {
     }
 
     return this.getProfileService.execute(authResult.userId);
+  }
+
+  @GrpcMethod('AuthService', 'GetUserInfo')
+  async getUserInfo(data: { userId: string }) {
+    return this.getUserInfoGrpcService.execute(data.userId);
+  }
+
+  @GrpcMethod('AuthService', 'ValidatePassword')
+  async validatePassword(data: { userId: string; password: string }) {
+    return this.validatePasswordGrpcService.execute(data.userId, data.password);
   }
 
   @GrpcMethod('AuthService', 'UpdateProfile')
@@ -321,7 +352,7 @@ export class AuthController {
 
   @GrpcMethod('AuthService', 'GetVendorBusinessProfiles')
   async getVendorBusinessProfiles(
-    _data: {},
+    data: GetVendorBusinessProfilesDto,
     metadata: Metadata,
   ): Promise<BusinessProfilesResponse> {
     const authResult = this.jwtAuthGuard.validateToken(metadata);
@@ -332,12 +363,31 @@ export class AuthController {
         statusCode: 401,
         success: false,
         profiles: [],
-        total: 0,
+        meta: {
+          total: 0,
+          page: 1,
+          limit: 10,
+          totalPages: 0,
+          hasNext: false,
+          hasPrevious: false,
+        },
       };
     }
 
+    // Ensure pagination defaults are applied correctly
+    const page =
+      data.pagination?.page && data.pagination.page > 0
+        ? data.pagination.page
+        : 1;
+    const limit =
+      data.pagination?.limit && data.pagination.limit > 0
+        ? data.pagination.limit
+        : 10;
+
+    const pagination = { page, limit };
     return this.businessProfileService.getVendorBusinessProfiles(
       authResult.userId,
+      pagination,
     );
   }
 
