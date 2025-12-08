@@ -5,8 +5,12 @@ import { JwtService } from '@nestjs/jwt';
 import { verify } from 'argon2';
 import { createHash, randomBytes } from 'crypto';
 import { CustomLogger as Logger } from 'kulipal-shared';
-import { BusinessProfile, RefreshToken, User } from 'src/database';
-import type { BusinessProfileSummary, LoginResponse, RegisteredUser } from '../types/auth.type';
+import { BusinessProfile, RefreshToken, User, UserType } from 'src/database';
+import type {
+  BusinessProfileSummary,
+  LoginResponse,
+  RegisteredUser,
+} from '../types/auth.type';
 import { WalletGrpcService } from './wallet-grpc.service'; // Add this
 
 export type LoginType = {
@@ -22,7 +26,7 @@ export class LoginService {
     private readonly em: EntityManager,
     private jwtService: JwtService,
     private readonly walletGrpcService: WalletGrpcService, // Inject this
-  ) { }
+  ) {}
 
   @CreateRequestContext()
   async execute(data: LoginType): Promise<LoginResponse> {
@@ -76,19 +80,19 @@ export class LoginService {
     const credentials = await this.generateCredentials(existingUser.id);
 
     let businessProfiles: BusinessProfileSummary[] = [];
-    if (existingUser.userType === 'vendor') {
+    if (existingUser.userType === UserType.VENDOR) {
       this.logger.log(`User is a vendor, fetching all business profiles`);
       const profiles = await this.em.find(
         BusinessProfile,
         { user: existingUser.id },
         {
           orderBy: { createdAt: 'DESC' },
-          populate: ['operatingTimes']
-        }
+          populate: ['operatingTimes'],
+        },
       );
 
       if (profiles && profiles.length > 0) {
-        businessProfiles = profiles.map(profile => ({
+        businessProfiles = profiles.map((profile) => ({
           id: profile.id,
           businessName: profile.businessName,
           industry: profile.industry,
@@ -106,36 +110,37 @@ export class LoginService {
           createdAt: profile.createdAt,
           updatedAt: profile.updatedAt,
         }));
-        this.logger.log(`Found ${businessProfiles.length} business profiles for vendor: ${existingUser.id}`);
+        this.logger.log(
+          `Found ${businessProfiles.length} business profiles for vendor: ${existingUser.id}`,
+        );
       } else {
-        this.logger.log(`No business profiles found for vendor ${existingUser.id}`);
+        this.logger.log(
+          `No business profiles found for vendor ${existingUser.id}`,
+        );
       }
     }
 
-    // Fetch wallet info via gRPC call to payment service
     let walletInfo: RegisteredUser['wallet'] | undefined;
     try {
-      const walletResponse = await this.walletGrpcService.getWallet(existingUser.id);
-      
+      const walletResponse = await this.walletGrpcService.getWallet(
+        existingUser.id,
+      );
+
       if (walletResponse.success && walletResponse.wallet) {
-        walletInfo = {
-          id: walletResponse.wallet.id,
-          accountNumber: walletResponse.wallet.accountNumber,
-          balance: walletResponse.wallet.balance,
-          currency: walletResponse.wallet.currency,
-          isPinSet: walletResponse.wallet.isPinSet,
-          isActive: walletResponse.wallet.isActive,
-        };
+        walletInfo = this.walletGrpcService.mapWalletToUserFormat(
+          walletResponse.wallet,
+        );
         this.logger.log(`Fetched wallet info for user ${existingUser.id}`);
       } else {
-        this.logger.warn(`No wallet found or failed to fetch wallet for user ${existingUser.id}: ${walletResponse.message}`);
+        this.logger.warn(
+          `No wallet found or failed to fetch wallet for user ${existingUser.id}: ${walletResponse.message}`,
+        );
       }
     } catch (walletError: any) {
       this.logger.error(
         `Error fetching wallet for user ${existingUser.id}: ${walletError?.message ?? walletError}`,
         walletError?.stack,
       );
-      // Don't fail login if wallet fetch fails
     }
 
     const userPayload: RegisteredUser = {
@@ -151,8 +156,9 @@ export class LoginService {
       source: existingUser.source ?? undefined,
       businessProfiles,
       isIdentityVerified: Boolean(existingUser.isIdentityVerified),
-      identityVerificationType: existingUser.identityVerificationType ?? undefined,
-      wallet: walletInfo,
+      identityVerificationType:
+        existingUser.identityVerificationType ?? undefined,
+      wallet: walletInfo ?? ({} as RegisteredUser['wallet']),
     };
 
     return {

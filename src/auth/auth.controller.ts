@@ -363,6 +363,14 @@ export class AuthController {
         statusCode: 401,
         success: false,
         profiles: [],
+        meta: {
+          total: 0,
+          page: 1,
+          limit: 10,
+          totalPages: 0,
+          hasNext: false,
+          hasPrevious: false,
+        },
       };
     }
 

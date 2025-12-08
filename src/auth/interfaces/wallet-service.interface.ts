@@ -8,8 +8,8 @@ export interface WalletDto {
   currency: string;
   isPinSet: boolean;
   isActive: boolean;
-  lastTransactionAt?: string;
-  createdAt?: string;
+  lastTransactionAt?: string | null;
+  createdAt: string;
 }
 
 export interface GetWalletRequest {

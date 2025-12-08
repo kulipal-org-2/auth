@@ -8,7 +8,7 @@ import { default as jwksClient } from 'jwks-rsa';
 import { APPLE_ISSUER, JWKS_URI } from 'src/constants';
 import { CustomLogger as Logger } from 'kulipal-shared';
 import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
-import { BusinessProfile, RefreshToken, User } from 'src/database';
+import { BusinessProfile, RefreshToken, User, UserType } from 'src/database';
 import { createHash, randomBytes } from 'crypto';
 import type { BusinessProfileSummary, LoginResponse, RegisteredUser } from '../types/auth.type';
 import { type LoginGoogleRequest } from '../types/auth.type';
@@ -159,7 +159,7 @@ export class OauthService {
 
     // Fetch ALL business profiles if user is a vendor
     let businessProfiles: BusinessProfileSummary[] = [];
-    if (existingUser.userType === 'vendor') {
+    if (existingUser.userType === UserType.VENDOR) {
       const profiles = await this.em.find(
         BusinessProfile,
         { user: existingUser.id },
@@ -194,14 +194,7 @@ export class OauthService {
       const walletResponse = await this.walletGrpcService.getWallet(existingUser.id);
       
       if (walletResponse.success && walletResponse.wallet) {
-        walletInfo = {
-          id: walletResponse.wallet.id,
-          accountNumber: walletResponse.wallet.accountNumber,
-          balance: walletResponse.wallet.balance,
-          currency: walletResponse.wallet.currency,
-          isPinSet: walletResponse.wallet.isPinSet,
-          isActive: walletResponse.wallet.isActive,
-        };
+        walletInfo = this.walletGrpcService.mapWalletToUserFormat(walletResponse.wallet);
         this.logger.log(`Fetched wallet info for user ${existingUser.id}`);
       } else {
         this.logger.warn(`No wallet found or failed to fetch wallet for user ${existingUser.id}: ${walletResponse.message}`);

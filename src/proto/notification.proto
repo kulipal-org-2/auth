@@ -29,4 +29,3 @@ message SmsDto {
   string senderId = 3;
   string channel = 4;
 }
-
