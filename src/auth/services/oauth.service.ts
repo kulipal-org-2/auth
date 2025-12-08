@@ -194,14 +194,7 @@ export class OauthService {
       const walletResponse = await this.walletGrpcService.getWallet(existingUser.id);
       
       if (walletResponse.success && walletResponse.wallet) {
-        walletInfo = {
-          id: walletResponse.wallet.id,
-          accountNumber: walletResponse.wallet.accountNumber,
-          balance: walletResponse.wallet.balance,
-          currency: walletResponse.wallet.currency,
-          isPinSet: walletResponse.wallet.isPinSet,
-          isActive: walletResponse.wallet.isActive,
-        };
+        walletInfo = this.walletGrpcService.mapWalletToUserFormat(walletResponse.wallet);
         this.logger.log(`Fetched wallet info for user ${existingUser.id}`);
       } else {
         this.logger.warn(`No wallet found or failed to fetch wallet for user ${existingUser.id}: ${walletResponse.message}`);

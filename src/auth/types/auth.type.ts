@@ -51,7 +51,9 @@ export type RegisteredUser = {
     currency: string;
     isPinSet: boolean;
     isActive: boolean;
-  };
+    lastTransactionAt?: string;
+    createdAt: string;
+  } | {};
 };
 
 export type RefreshTokenRequest = {

@@ -7,10 +7,10 @@ import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
 import { RefreshToken, User, BusinessProfile, UserType } from 'src/database';
 import type {
   LoginResponse,
-  RefreshTokenRequest,
   RegisteredUser,
   BusinessProfileSummary,
 } from '../types/auth.type';
+import { WalletGrpcService } from './wallet-grpc.service';
 
 @Injectable()
 export class RefreshAccessTokenService {
@@ -19,6 +19,7 @@ export class RefreshAccessTokenService {
   constructor(
     private readonly em: EntityManager,
     private readonly jwtService: JwtService,
+    private readonly walletGrpcService: WalletGrpcService,
   ) {}
 
   @CreateRequestContext()
@@ -108,6 +109,23 @@ export class RefreshAccessTokenService {
         }
       }
 
+      let walletInfo: RegisteredUser['wallet'] | undefined;
+      try {
+        const walletResponse = await this.walletGrpcService.getWallet(user.id);
+        
+        if (walletResponse.success && walletResponse.wallet) {
+          walletInfo = this.walletGrpcService.mapWalletToUserFormat(walletResponse.wallet);
+          this.logger.log(`Fetched wallet info for user ${user.id}`);
+        } else {
+          this.logger.warn(`No wallet found or failed to fetch wallet for user ${user.id}: ${walletResponse.message}`);
+        }
+      } catch (walletError: any) {
+        this.logger.error(
+          `Error fetching wallet for user ${user.id}: ${walletError?.message ?? walletError}`,
+          walletError?.stack,
+        );
+      }
+
       userPayload = {
         id: user.id,
         firstName: user.firstName,
@@ -122,6 +140,7 @@ export class RefreshAccessTokenService {
         businessProfiles,
         isIdentityVerified: Boolean(user.isIdentityVerified),
         identityVerificationType: user.identityVerificationType ?? undefined,
+        wallet: walletInfo ?? ({} as RegisteredUser['wallet']),
       };
     }
 

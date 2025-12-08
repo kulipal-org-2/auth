@@ -11,6 +11,7 @@ import type {
 } from '../types/auth.type';
 import { OtpChannel } from '../enums/otp.enum';
 import { LoginService } from './login.service';
+import { WalletGrpcService } from './wallet-grpc.service';
 
 @Injectable()
 export class ValidateOtpService {
@@ -19,6 +20,7 @@ export class ValidateOtpService {
   constructor(
     private readonly em: EntityManager,
     private readonly loginService: LoginService,
+    private readonly walletGrpcService: WalletGrpcService,
   ) {}
 
   @CreateRequestContext()
@@ -155,6 +157,25 @@ export class ValidateOtpService {
       }
     }
 
+    let walletInfo: RegisteredUser['wallet'] | undefined;
+    if (isVerified) {
+      try {
+        const walletResponse = await this.walletGrpcService.getWallet(user.id);
+        
+        if (walletResponse.success && walletResponse.wallet) {
+          walletInfo = this.walletGrpcService.mapWalletToUserFormat(walletResponse.wallet);
+          this.logger.log(`Fetched wallet info for user ${user.id}`);
+        } else {
+          this.logger.warn(`No wallet found or failed to fetch wallet for user ${user.id}: ${walletResponse.message}`);
+        }
+      } catch (walletError: any) {
+        this.logger.error(
+          `Error fetching wallet for user ${user.id}: ${walletError?.message ?? walletError}`,
+          walletError?.stack,
+        );
+      }
+    }
+
     const userPayload: RegisteredUser | null = isVerified
       ? {
           id: user.id,
@@ -170,6 +191,7 @@ export class ValidateOtpService {
           businessProfiles,
           isIdentityVerified: Boolean(user.isIdentityVerified),
           identityVerificationType: user.identityVerificationType ?? undefined,
+          wallet: walletInfo ?? ({} as RegisteredUser['wallet']),
         }
       : null;
 

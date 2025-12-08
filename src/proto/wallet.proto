@@ -21,7 +21,7 @@ message WalletDto {
   bool isPinSet = 5;
   bool isActive = 6;
   optional string lastTransactionAt = 7;
-  optional string createdAt = 8;
+  string createdAt = 8;
 }
 
 message CreateWalletRequest {

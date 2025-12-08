@@ -59,6 +59,8 @@ message WalletDto {
   string currency = 4;
   bool isPinSet = 5;
   bool isActive = 6;
+  optional string lastTransactionAt = 7;
+  string createdAt = 8;
 }
 
 message LoginGoogleDto {
