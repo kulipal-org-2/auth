@@ -57,6 +57,7 @@ export type RegisteredUser = {
 };
 
 export type RefreshTokenRequest = {
+  accessToken: string;
   refreshToken: string;
 };
 
