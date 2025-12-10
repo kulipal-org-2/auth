@@ -129,20 +129,33 @@ export class AuthController {
   @GrpcMethod('AuthService', 'RefreshToken')
   async refreshAccessToken(
     data: RefreshTokenRequest,
-    metadata: Metadata,
   ): Promise<LoginResponse> {
-    const authResult = this.jwtAuthGuard.validateToken(metadata);
-
-    if (!authResult.success) {
+    let userId: string | null = null;
+    
+    try {
+      const decoded = this.jwtAuthGuard.decodeTokenWithoutValidation(data.accessToken);
+      
+      if (!decoded?.userId) {
+        return {
+          success: false,
+          statusCode: 401,
+          message: 'Invalid access token',
+          user: null,
+        };
+      }
+      
+      userId = decoded.userId;
+    } catch (error: any) {
       return {
         success: false,
         statusCode: 401,
-        message: authResult.message,
+        message: `Failed to extract userId from access token: ${error.message}`,
         user: null,
       };
     }
+
     return await this.refreshToken.execute(
-      authResult.userId,
+      userId,
       data.refreshToken,
     );
   }

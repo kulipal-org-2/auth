@@ -39,7 +39,8 @@ message LoginDto {
 }
 
 message RefreshTokenDto {
-    string refreshToken = 1;
+    string accessToken = 1;
+    string refreshToken = 2;
 }
 
 message RegisterDto {
