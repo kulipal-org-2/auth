@@ -1,9 +1,19 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/postgresql';
 import { KybService } from './kyb.service';
-import { User, BusinessProfile, BusinessVerification } from '../../../database/entities';
+import {
+  User,
+  BusinessProfile,
+  BusinessVerification,
+  UserType,
+} from '../../../database/entities';
 import { randomUUID } from 'crypto';
-import { BusinessType, BusinessVerificationResultDto, InitiateBusinessVerificationDto } from 'src/smile-identity/types/smile-identity.types';
+import {
+  BusinessType,
+  BusinessVerificationResultDto,
+  BusinessVerificationResponse,
+  InitiateBusinessVerificationDto,
+} from 'src/smile-identity/types/smile-identity.types';
 
 @Injectable()
 export class BusinessVerificationService {
@@ -26,14 +36,14 @@ export class BusinessVerificationService {
       throw new BadRequestException('User not found');
     }
 
-    if (user.userType !== 'vendor') {
+    if (user.userType !== UserType.VENDOR) {
       throw new BadRequestException('Only vendors can verify businesses');
     }
 
     // Validate business profile exists
-    const businessProfile = await this.em.findOne(BusinessProfile, { 
+    const businessProfile = await this.em.findOne(BusinessProfile, {
       id: dto.businessProfileId,
-      user: { id: userId } 
+      user: { id: userId },
     });
 
     if (!businessProfile) {
@@ -43,8 +53,8 @@ export class BusinessVerificationService {
     const jobId = `biz_${randomUUID()}`;
 
     try {
-      let verificationResult;
-      
+      let verificationResult: BusinessVerificationResponse;
+
       if (dto.verificationType === 'business_registration') {
         verificationResult = await this.kybService.verifyBusiness(
           {
@@ -83,7 +93,8 @@ export class BusinessVerificationService {
       if (verificationResult.success) {
         businessProfile.isThirdPartyVerified = true;
         if (verificationResult.companyInformation?.legal_name) {
-          businessProfile.businessName = verificationResult.companyInformation.legal_name;
+          businessProfile.businessName =
+            verificationResult.companyInformation.legal_name;
         }
         await this.em.flush();
       }
@@ -96,17 +107,19 @@ export class BusinessVerificationService {
         companyInformation: verificationResult.companyInformation,
         timestamp: verificationResult.timestamp,
       };
-
     } catch (error: unknown) {
       // Proper error handling for unknown type
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred during business verification';
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Unknown error occurred during business verification';
       const stack = error instanceof Error ? error.stack : undefined;
-      
+
       this.logger.error(`Business verification failed: ${errorMessage}`, stack);
-      
+
       // Save failed verification attempt
       const failedVerification = this.em.create(BusinessVerification, {
-        businessProfile: businessProfile!,
+        businessProfile,
         verificationType: 'third_party',
         status: 'rejected',
         smileJobId: jobId,
@@ -123,18 +136,18 @@ export class BusinessVerificationService {
     // Fixed: Remove duplicate businessProfile property
     const verifications = await this.em.find(
       BusinessVerification,
-      { 
-        businessProfile: { 
+      {
+        businessProfile: {
           id: businessProfileId,
-          user: { id: userId } 
-        }
+          user: { id: userId },
+        },
       },
-      { orderBy: { createdAt: 'DESC' } }
+      { orderBy: { createdAt: 'DESC' } },
     );
 
     return {
-      isThirdPartyVerified: verifications.some(v => v.status === 'approved'),
-      verifications: verifications.map(v => ({
+      isThirdPartyVerified: verifications.some((v) => v.status === 'approved'),
+      verifications: verifications.map((v) => ({
         id: v.id,
         verificationType: v.verificationType,
         status: v.status,

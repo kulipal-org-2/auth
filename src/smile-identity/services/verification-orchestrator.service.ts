@@ -5,6 +5,11 @@ import { KycService } from './kyc/kyc.service';
 import { KybService } from './kyb/kyb.service';
 import { User } from 'src/database/entities/user.entity';
 import { randomUUID } from 'crypto';
+import {
+  BusinessType,
+  BusinessVerificationResponse,
+  KycVerificationResponse,
+} from '../types/smile-identity.types';
 
 export interface KycVerificationData {
   idType: string;
@@ -45,7 +50,6 @@ export class VerificationOrchestratorService {
     userId: string,
     verificationType: 'KYC' | 'KYB',
     data: KycVerificationData | KybVerificationData,
-    businessProfileId?: string,
   ): Promise<VerificationResult> {
     this.logger.log(
       `Initiating ${verificationType} verification for user: ${userId}`,
@@ -73,7 +77,7 @@ export class VerificationOrchestratorService {
     }
 
     const jobId = this.generateJobId();
-    let result;
+    let result: KycVerificationResponse | BusinessVerificationResponse;
 
     try {
       if (verificationType === 'KYC') {
@@ -94,7 +98,7 @@ export class VerificationOrchestratorService {
         result = await this.kybService.verifyBusiness(
           {
             registrationNumber: kybData.registrationNumber,
-            businessType: kybData.businessType as any,
+            businessType: kybData.businessType as BusinessType,
             businessName: kybData.businessName,
           },
           userId,
@@ -122,12 +126,16 @@ export class VerificationOrchestratorService {
         resultCode: result.resultCode,
         timestamp: result.timestamp,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+      const stack = error instanceof Error ? error.stack : undefined;
+
       this.logger.error(
-        `Verification failed for user ${userId}: ${error.message}`,
-        error.stack,
+        `Verification failed for user ${userId}: ${errorMessage}`,
+        stack,
       );
-      throw new BadRequestException(`Verification failed: ${error.message}`);
+      throw new BadRequestException(`Verification failed: ${errorMessage}`);
     }
   }
 
