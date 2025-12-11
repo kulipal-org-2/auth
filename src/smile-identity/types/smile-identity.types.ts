@@ -22,6 +22,7 @@ export interface IdInfo {
   last_name?: string;
   dob?: string;
   business_name?: string;
+  [key: string]: string | undefined;
 }
 
 export type BusinessType = 'bn' | 'co' | 'it';
