@@ -1,5 +1,5 @@
-import { Injectable, Logger } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as SmileIdentityCore from 'smile-identity-core';
 
 export interface SmileIdentityConfig {
@@ -49,10 +49,12 @@ export class SmileIdentityService {
 
   constructor(private readonly configService: ConfigService) {
     this.config = {
-      partnerId: this.configService.get<string>('SMILE_IDENTITY_PARTNER_ID') ?? '6709',
+      partnerId:
+        this.configService.get<string>('SMILE_IDENTITY_PARTNER_ID') ?? '6709',
       apiKey: this.configService.get<string>('SMILE_IDENTITY_API_KEY') ?? '',
       sidServer: this.configService.get<string>('SMILE_IDENTITY_SERVER') ?? '0',
-      callbackUrl: this.configService.get<string>('SMILE_IDENTITY_CALLBACK_URL') ?? '',
+      callbackUrl:
+        this.configService.get<string>('SMILE_IDENTITY_CALLBACK_URL') ?? '',
     };
 
     if (!this.config.apiKey) {
@@ -69,9 +71,13 @@ export class SmileIdentityService {
     }
   }
 
-  async submitDocumentVerification(params: DocumentVerificationParams): Promise<SmileVerificationResult> {
+  async submitDocumentVerification(
+    params: DocumentVerificationParams,
+  ): Promise<SmileVerificationResult> {
     try {
-      this.logger.log(`Submitting document verification for user: ${params.smileUserId}`);
+      this.logger.log(
+        `Submitting document verification for user: ${params.smileUserId}`,
+      );
 
       const partnerParams = {
         job_id: params.jobId,
@@ -141,9 +147,14 @@ export class SmileIdentityService {
     }
   }
 
-  async getJobStatus(smileUserId: string, jobId: string): Promise<SmileVerificationResult> {
+  async getJobStatus(
+    smileUserId: string,
+    jobId: string,
+  ): Promise<SmileVerificationResult> {
     try {
-      this.logger.log(`Getting job status for user: ${smileUserId}, job: ${jobId}`);
+      this.logger.log(
+        `Getting job status for user: ${smileUserId}, job: ${jobId}`,
+      );
 
       const utilities = SmileIdentityCore.Utilities;
       const utilInstance = new utilities(
@@ -165,7 +176,10 @@ export class SmileIdentityService {
 
       return this.parseVerificationResponse(response);
     } catch (error: any) {
-      this.logger.error(`Error getting job status: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error getting job status: ${error.message}`,
+        error.stack,
+      );
       return {
         success: false,
         jobComplete: false,
@@ -178,7 +192,11 @@ export class SmileIdentityService {
     }
   }
 
-  async generateWebToken(smileUserId: string, jobId: string, product?: string): Promise<string> {
+  async generateWebToken(
+    smileUserId: string,
+    jobId: string,
+    product?: string,
+  ): Promise<string> {
     try {
       const requestParams = {
         user_id: smileUserId,
@@ -190,7 +208,10 @@ export class SmileIdentityService {
       const token = await this.webApi.get_web_token(requestParams);
       return token;
     } catch (error: any) {
-      this.logger.error(`Error generating web token: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error generating web token: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -216,7 +237,8 @@ export class SmileIdentityService {
     }
 
     const successCodes = ['0810', '1012', '2302'];
-    result.success = response.job_success && successCodes.includes(result.resultCode);
+    result.success =
+      response.job_success && successCodes.includes(result.resultCode);
 
     return result;
   }
