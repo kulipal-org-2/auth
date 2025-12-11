@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as SmileIdentityCore from 'smile-identity-core';
+import { IDApi, SmileJobResponse } from 'smile-identity-core';
 import {
   IdInfo,
   PartnerParams,
@@ -11,7 +11,7 @@ import {
 @Injectable()
 export class SmileCoreService {
   private readonly logger = new Logger(SmileCoreService.name);
-  private idApi!: SmileIdentityCore.IDApi;
+  private idApi!: IDApi;
   private config!: SmileConfig;
 
   constructor(private configService: ConfigService) {
@@ -36,7 +36,7 @@ export class SmileCoreService {
         this.configService.get<string>('NODE_ENV') === 'production' ? '1' : '0',
     };
 
-    this.idApi = new SmileIdentityCore.IDApi(
+    this.idApi = new IDApi(
       this.config.partnerId,
       this.config.apiKey,
       this.config.sidServer,
@@ -53,9 +53,9 @@ export class SmileCoreService {
       this.logger.log(`Submitting verification job: ${partnerParams.job_id}`);
 
       // Type assertions to satisfy smile-identity-core
-      const response = await this.idApi.submit_job(
-        partnerParams as any,
-        idInfo as any,
+      const response: SmileJobResponse = await this.idApi.submit_job(
+        partnerParams,
+        idInfo,
       );
 
       return {
