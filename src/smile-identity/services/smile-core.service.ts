@@ -51,6 +51,9 @@ export class SmileCoreService {
   ): Promise<SmileVerificationResult> {
     try {
       this.logger.log(`Submitting verification job: ${partnerParams.job_id}`);
+      this.logger.log(`Partner params: ${JSON.stringify(partnerParams)}`);
+      this.logger.log(`ID info: ${JSON.stringify(idInfo)}`);
+      this.logger.log(`Using sidServer: ${this.config.sidServer}`);
 
       // Type assertions to satisfy smile-identity-core
       const response: SmileJobResponse = await this.idApi.submit_job(
@@ -68,9 +71,24 @@ export class SmileCoreService {
         fullResponse: response,
       };
     } catch (error: unknown) {
+      // Log full error details for debugging
+      if (error instanceof Error) {
+        this.logger.error(`Verification job failed: ${error.message}`);
+        this.logger.error(`Error stack: ${error.stack}`);
+
+        // Check if it's an Axios error with response data
+        if ('response' in error) {
+          const responseError = error as { response?: { data?: unknown } };
+          if (responseError.response?.data) {
+            this.logger.error(
+              `Smile Identity API response: ${JSON.stringify(responseError.response.data)}`,
+            );
+          }
+        }
+      }
+
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error occurred';
-      this.logger.error(`Verification job failed: ${errorMessage}`);
       throw new Error(`Smile Identity verification failed: ${errorMessage}`);
     }
   }
