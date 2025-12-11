@@ -11,7 +11,7 @@ import {
 @Injectable()
 export class SmileCoreService {
   private readonly logger = new Logger(SmileCoreService.name);
-  private idApi: any;
+  private idApi!: SmileIdentityCore.IDApi;
   private config!: SmileConfig;
 
   constructor(private configService: ConfigService) {
