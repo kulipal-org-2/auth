@@ -47,12 +47,14 @@ export type RegisteredUser = {
   wallet?: {
     id: string;
     accountNumber: string;
-    balance: number;
+    mainBalance: number;
+    ledgerBalance: number;
     currency: string;
     isPinSet: boolean;
     isActive: boolean;
-    lastTransactionAt?: string;
+    lastTransactionAt?: string | null;
     createdAt: string;
+    accountOwnerType: string; // 'user' or 'vendor'
   } | {};
 };
 

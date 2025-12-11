@@ -51,7 +51,7 @@ import { GetProfileService } from './services/get-profile.service';
 import { UpdateProfileService } from './services/update-profile.service';
 import { GetUserByIdService } from './services/get-user-by-id.service';
 import { DeleteProfileService } from './services/delete-profile.service';
-import { VerificationOrchestratorService } from 'src/smile-identity/services/verification-orchestrator.service';
+import { IDentificationType, VerificationOrchestratorService } from 'src/smile-identity/services/verification-orchestrator.service';
 import { BusinessVerificationService } from 'src/smile-identity/services/kyb/business-verification.service';
 import { GetUserInfoGrpcService } from './services/get-user-info-grpc.service';
 import { ValidatePasswordGrpcService } from './services/validate-password-grpc.service';
@@ -60,7 +60,7 @@ interface InitiateIdentityVerificationRequest {
   verificationType: 'KYC' | 'KYB';
   businessProfileId?: string;
   kycData?: {
-    idType: string;
+    idType: IDentificationType;
     idNumber: string;
     firstName?: string;
     lastName?: string;
