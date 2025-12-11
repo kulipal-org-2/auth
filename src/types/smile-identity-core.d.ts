@@ -6,15 +6,16 @@ declare module 'smile-identity-core' {
   }
 
   export interface IdInfo {
-    country: string;
-    id_type: string;
-    id_number: string;
+    country?: string;
+    id_type?: string;
+    id_number?: string;
     entered?: string;
     business_type?: string;
     first_name?: string;
     last_name?: string;
     dob?: string;
     business_name?: string;
+    [key: string]: string | undefined;
   }
 
   export interface SmileJobResponse {
@@ -23,7 +24,40 @@ declare module 'smile-identity-core' {
     SmileJobID: string;
     timestamp: string;
     signature: string;
+    job_complete?: boolean;
+    job_success?: boolean;
+    code?: string;
+    result?: SmileResultData;
+    company_information?: Record<string, unknown>;
+    directors?: unknown[];
+    beneficial_owners?: unknown[];
     [key: string]: unknown;
+  }
+
+  export interface SmileResultData {
+    ResultCode?: string;
+    ResultText?: string;
+    SmileJobID?: string;
+    FullName?: string;
+    IDNumber?: string;
+    DOB?: string;
+    Gender?: string;
+    Photo?: string;
+    Actions?: Record<string, string>;
+    [key: string]: unknown;
+  }
+
+  export interface WebApiOptions {
+    return_job_status?: boolean;
+    return_image_links?: boolean;
+    return_history?: boolean;
+  }
+
+  export interface WebTokenParams {
+    user_id: string;
+    job_id: string;
+    product?: string;
+    callback_url?: string;
   }
 
   export class IDApi {
@@ -44,9 +78,10 @@ declare module 'smile-identity-core' {
     submit_job(
       partnerParams: PartnerParams,
       imageDetails: Array<{ image_type_id: number; image: string }>,
-      idInfo: IdInfo,
-      options?: Record<string, unknown>,
+      idInfo?: IdInfo,
+      options?: WebApiOptions,
     ): Promise<SmileJobResponse>;
+    get_web_token(params: WebTokenParams): Promise<string>;
   }
 
   export class Signature {
@@ -61,9 +96,9 @@ declare module 'smile-identity-core' {
   export class Utilities {
     constructor(partnerId: string, apiKey: string, sidServer: string);
     get_job_status(
-      partnerId: string,
-      jobId: string,
       userId: string,
+      jobId: string,
+      options?: WebApiOptions,
     ): Promise<SmileJobResponse>;
   }
 }

@@ -1,6 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as SmileIdentityCore from 'smile-identity-core';
+import {
+  WebApi,
+  Utilities,
+  IdInfo,
+  SmileJobResponse,
+} from 'smile-identity-core';
 
 export interface SmileIdentityConfig {
   partnerId: string;
@@ -44,7 +49,7 @@ export interface SmileVerificationResult {
 @Injectable()
 export class SmileIdentityService {
   private readonly logger = new Logger(SmileIdentityService.name);
-  private webApi: any;
+  private webApi!: WebApi;
   private config: SmileIdentityConfig;
 
   constructor(private readonly configService: ConfigService) {
@@ -60,7 +65,6 @@ export class SmileIdentityService {
     if (!this.config.apiKey) {
       this.logger.warn('Smile Identity API key not configured');
     } else {
-      const WebApi = SmileIdentityCore.WebApi;
       this.webApi = new WebApi(
         this.config.partnerId,
         this.config.callbackUrl,
@@ -99,7 +103,9 @@ export class SmileIdentityService {
         });
       }
 
-      const idInfo: any = {};
+      const idInfo: IdInfo = {
+        country: 'NG',
+      };
       if (params.idNumber) {
         idInfo.id_number = params.idNumber;
       }
@@ -115,7 +121,6 @@ export class SmileIdentityService {
       if (params.dob) {
         idInfo.dob = params.dob;
       }
-      idInfo.country = 'NG';
 
       const options = {
         return_job_status: true,
@@ -133,16 +138,19 @@ export class SmileIdentityService {
       this.logger.log(`Smile Identity response: ${JSON.stringify(response)}`);
 
       return this.parseVerificationResponse(response);
-    } catch (error: any) {
-      this.logger.error(`Smile Identity error: ${error.message}`, error.stack);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Verification failed';
+      const stack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.error(`Smile Identity error: ${errorMessage}`, stack);
       return {
         success: false,
         jobComplete: false,
         jobSuccess: false,
         resultCode: 'ERROR',
-        resultText: error.message || 'Verification failed',
+        resultText: errorMessage,
         smileJobId: '',
-        fullResponse: error,
       };
     }
   }
@@ -156,8 +164,7 @@ export class SmileIdentityService {
         `Getting job status for user: ${smileUserId}, job: ${jobId}`,
       );
 
-      const utilities = SmileIdentityCore.Utilities;
-      const utilInstance = new utilities(
+      const utilInstance = new Utilities(
         this.config.partnerId,
         this.config.apiKey,
         this.config.sidServer,
@@ -175,19 +182,19 @@ export class SmileIdentityService {
       );
 
       return this.parseVerificationResponse(response);
-    } catch (error: any) {
-      this.logger.error(
-        `Error getting job status: ${error.message}`,
-        error.stack,
-      );
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to get job status';
+      const stack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.error(`Error getting job status: ${errorMessage}`, stack);
       return {
         success: false,
         jobComplete: false,
         jobSuccess: false,
         resultCode: 'ERROR',
-        resultText: error.message || 'Failed to get job status',
+        resultText: errorMessage,
         smileJobId: '',
-        fullResponse: error,
       };
     }
   }
@@ -207,16 +214,19 @@ export class SmileIdentityService {
 
       const token = await this.webApi.get_web_token(requestParams);
       return token;
-    } catch (error: any) {
-      this.logger.error(
-        `Error generating web token: ${error.message}`,
-        error.stack,
-      );
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      const stack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.error(`Error generating web token: ${errorMessage}`, stack);
       throw error;
     }
   }
 
-  private parseVerificationResponse(response: any): SmileVerificationResult {
+  private parseVerificationResponse(
+    response: SmileJobResponse,
+  ): SmileVerificationResult {
     const result: SmileVerificationResult = {
       success: false,
       jobComplete: response.job_complete ?? false,
@@ -232,13 +242,14 @@ export class SmileIdentityService {
       result.idNumber = response.result.IDNumber;
       result.dob = response.result.DOB;
       result.actions = response.result.Actions;
-      result.resultCode = response.result.ResultCode;
-      result.resultText = response.result.ResultText;
+      result.resultCode = response.result.ResultCode ?? '';
+      result.resultText = response.result.ResultText ?? '';
     }
 
     const successCodes = ['0810', '1012', '2302'];
     result.success =
-      response.job_success && successCodes.includes(result.resultCode);
+      (response.job_success ?? false) &&
+      successCodes.includes(result.resultCode);
 
     return result;
   }
