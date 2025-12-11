@@ -32,8 +32,7 @@ export class SmileCoreService {
     this.config = {
       partnerId,
       apiKey,
-      sidServer:
-        this.configService.get<string>('NODE_ENV') === 'production' ? '1' : '0',
+      sidServer: this.configService.get<string>('SMILE_IDENTITY_SERVER') ?? '0',
     };
 
     this.idApi = new IDApi(
@@ -55,7 +54,6 @@ export class SmileCoreService {
       this.logger.log(`ID info: ${JSON.stringify(idInfo)}`);
       this.logger.log(`Using sidServer: ${this.config.sidServer}`);
 
-      // Type assertions to satisfy smile-identity-core
       const response: SmileJobResponse = await this.idApi.submit_job(
         partnerParams,
         idInfo,
