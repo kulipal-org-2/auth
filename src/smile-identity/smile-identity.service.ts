@@ -3,7 +3,17 @@ import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { EntityManager } from '@mikro-orm/postgresql';
 import { BusinessVerificationService } from './services/kyb/business-verification.service';
 import { BusinessProfile } from 'src/database/entities/business-profile.entity';
-import { User } from 'src/database';
+import { User, UserType } from 'src/database';
+import {
+  BusinessVerificationResultDto,
+  BusinessType,
+} from './types/smile-identity.types';
+
+interface VerificationResponse {
+  success: boolean;
+  message: string;
+  data: BusinessVerificationResultDto;
+}
 
 @Injectable()
 export class SmileIdentityService {
@@ -18,9 +28,9 @@ export class SmileIdentityService {
   async verifyBusinessRegistration(
     userId: string,
     registrationNumber: string,
-    businessType: string,
+    businessType: BusinessType,
     businessProfileId: string,
-  ) {
+  ): Promise<VerificationResponse> {
     await this.validateUserAndBusinessProfile(userId, businessProfileId);
 
     const result =
@@ -30,7 +40,7 @@ export class SmileIdentityService {
           businessProfileId,
           registrationNumber,
           verificationType: 'business_registration',
-          businessType: businessType as any,
+          businessType,
         },
       );
 
@@ -67,7 +77,7 @@ export class SmileIdentityService {
       throw new BadRequestException('User not found');
     }
 
-    if (user.userType !== 'vendor') {
+    if (user.userType !== UserType.VENDOR) {
       throw new BadRequestException('Only vendors can verify businesses');
     }
 
@@ -83,10 +93,10 @@ export class SmileIdentityService {
     return { user, businessProfile };
   }
 
-  private async validateBusinessVerificationResult(
-    result: any,
+  private validateBusinessVerificationResult(
+    result: BusinessVerificationResultDto,
     userId: string,
-  ) {
+  ): VerificationResponse {
     if (result.success) {
       this.logger.log(`Business verification successful for user: ${userId}`);
       return {
