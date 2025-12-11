@@ -1,8 +1,15 @@
 // smile-identity/services/kyb/kyb.service.ts
 import { Injectable, Logger } from '@nestjs/common';
 import { SmileCoreService } from '../smile-core.service';
-import { BusinessVerificationRequest, BusinessVerificationResponse } from 'src/smile-identity/types/smile-identity.types';
-import { SMILE_BUSINESS_ID_TYPES, SMILE_COUNTRIES, SMILE_JOB_TYPES } from 'src/smile-identity/types/smile-job-types.constant';
+import {
+  BusinessVerificationRequest,
+  BusinessVerificationResponse,
+} from 'src/smile-identity/types/smile-identity.types';
+import {
+  SMILE_BUSINESS_ID_TYPES,
+  SMILE_COUNTRIES,
+  SMILE_JOB_TYPES,
+} from 'src/smile-identity/types/smile-job-types.constant';
 
 @Injectable()
 export class KybService {
@@ -36,7 +43,10 @@ export class KybService {
       idInfo.business_name = request.businessName;
     }
 
-    const result = await this.smileCoreService.submitVerificationJob(partnerParams, idInfo);
+    const result = await this.smileCoreService.submitVerificationJob(
+      partnerParams,
+      idInfo,
+    );
 
     return {
       success: result.success,
@@ -70,7 +80,10 @@ export class KybService {
       entered: 'true',
     };
 
-    const result = await this.smileCoreService.submitVerificationJob(partnerParams, idInfo);
+    const result = await this.smileCoreService.submitVerificationJob(
+      partnerParams,
+      idInfo,
+    );
 
     return {
       success: result.success,

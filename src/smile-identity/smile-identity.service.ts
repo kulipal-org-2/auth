@@ -16,47 +16,52 @@ export class SmileIdentityService {
 
   // Business verification methods using BusinessVerification entity
   async verifyBusinessRegistration(
-    userId: string, 
-    registrationNumber: string, 
-    businessType: string, 
-    businessProfileId: string
+    userId: string,
+    registrationNumber: string,
+    businessType: string,
+    businessProfileId: string,
   ) {
     await this.validateUserAndBusinessProfile(userId, businessProfileId);
-    
-    const result = await this.businessVerificationService.initiateBusinessVerification(
-      userId,
-      {
-        businessProfileId,
-        registrationNumber,
-        verificationType: 'business_registration',
-        businessType: businessType as any,
-      }
-    );
+
+    const result =
+      await this.businessVerificationService.initiateBusinessVerification(
+        userId,
+        {
+          businessProfileId,
+          registrationNumber,
+          verificationType: 'business_registration',
+          businessType: businessType as any,
+        },
+      );
 
     return this.validateBusinessVerificationResult(result, userId);
   }
 
   async verifyTaxInformation(
-    userId: string, 
+    userId: string,
     taxNumber: string,
-    businessProfileId: string
+    businessProfileId: string,
   ) {
     await this.validateUserAndBusinessProfile(userId, businessProfileId);
-    
-    const result = await this.businessVerificationService.initiateBusinessVerification(
-      userId,
-      {
-        businessProfileId,
-        registrationNumber: taxNumber,
-        verificationType: 'tax_information',
-      }
-    );
+
+    const result =
+      await this.businessVerificationService.initiateBusinessVerification(
+        userId,
+        {
+          businessProfileId,
+          registrationNumber: taxNumber,
+          verificationType: 'tax_information',
+        },
+      );
 
     return this.validateBusinessVerificationResult(result, userId);
   }
 
   // Helper methods
-  private async validateUserAndBusinessProfile(userId: string, businessProfileId: string) {
+  private async validateUserAndBusinessProfile(
+    userId: string,
+    businessProfileId: string,
+  ) {
     const user = await this.em.findOne(User, { id: userId });
     if (!user) {
       throw new BadRequestException('User not found');
@@ -66,9 +71,9 @@ export class SmileIdentityService {
       throw new BadRequestException('Only vendors can verify businesses');
     }
 
-    const businessProfile = await this.em.findOne(BusinessProfile, { 
+    const businessProfile = await this.em.findOne(BusinessProfile, {
       id: businessProfileId,
-      user: { id: userId } 
+      user: { id: userId },
     });
 
     if (!businessProfile) {
@@ -78,25 +83,34 @@ export class SmileIdentityService {
     return { user, businessProfile };
   }
 
-  private async validateBusinessVerificationResult(result: any, userId: string) {
+  private async validateBusinessVerificationResult(
+    result: any,
+    userId: string,
+  ) {
     if (result.success) {
       this.logger.log(`Business verification successful for user: ${userId}`);
       return {
         success: true,
         message: result.message,
-        data: result
+        data: result,
       };
     } else {
       this.logger.warn(`Business verification failed for user: ${userId}`);
       return {
         success: false,
         message: result.message,
-        data: result
+        data: result,
       };
     }
   }
 
-  async getBusinessVerificationStatus(businessProfileId: string, userId: string) {
-    return await this.businessVerificationService.getVerificationStatus(businessProfileId, userId);
+  async getBusinessVerificationStatus(
+    businessProfileId: string,
+    userId: string,
+  ) {
+    return await this.businessVerificationService.getVerificationStatus(
+      businessProfileId,
+      userId,
+    );
   }
 }
