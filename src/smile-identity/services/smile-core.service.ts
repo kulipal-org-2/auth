@@ -54,6 +54,7 @@ export class SmileCoreService {
       this.logger.log(`Partner params: ${JSON.stringify(partnerParams)}`);
       this.logger.log(`ID info: ${JSON.stringify(idInfo)}`);
       this.logger.log(`Using sidServer: ${this.config.sidServer}`);
+      this.logger.log(`Using config: ${JSON.stringify(this.config)}`);
 
       // Type assertions to satisfy smile-identity-core
       const response: SmileJobResponse = await this.idApi.submit_job(
