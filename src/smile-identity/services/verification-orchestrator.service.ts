@@ -6,8 +6,17 @@ import { KybService } from './kyb/kyb.service';
 import { User } from 'src/database/entities/user.entity';
 import { randomUUID } from 'crypto';
 
+export enum IDentificationType {
+    NIN_SLIP = 'NIN_SLIP',
+    BVN = 'BVN',
+    PHONE_NUMBER = 'PHONE_NUMBER',
+    VOTER_ID = 'VOTER_ID',
+    NIN_V2 = 'NIN_V2',
+    BANK_ACCOUNT = 'BANK_ACCOUNT',
+    V_NIN = 'V_NIN',
+}
 export interface KycVerificationData {
-    idType: string;
+    idType: IDentificationType;
     idNumber: string;
     firstName?: string;
     lastName?: string;
