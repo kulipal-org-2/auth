@@ -4,12 +4,14 @@ import { Metadata } from '@grpc/grpc-js';
 export interface WalletDto {
   id: string;
   accountNumber: string;
-  balance: number;
+  mainBalance: number;
+  ledgerBalance: number;
   currency: string;
   isPinSet: boolean;
   isActive: boolean;
   lastTransactionAt?: string | null;
   createdAt: string;
+  accountOwnerType: string; // 'user' or 'vendor'
 }
 
 export interface GetWalletRequest {
@@ -40,8 +42,8 @@ export interface WalletServiceClient {
     metadata?: Metadata,
   ): Observable<CreateWalletResponse>;
 
-    getWallet(
-      request: GetWalletRequest,
-      metadata?: Metadata,
-    ): Observable<GetWalletResponse>;
+  getWallet(
+    request: GetWalletRequest,
+    metadata?: Metadata,
+  ): Observable<GetWalletResponse>;
 }

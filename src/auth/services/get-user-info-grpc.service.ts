@@ -1,7 +1,7 @@
 // auth-service/src/auth/services/get-user-info-grpc.service.ts
 import { Injectable, Logger, HttpStatus } from '@nestjs/common';
 import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
-import { User } from 'src/database/entities/user.entity';
+import { User, UserType } from 'src/database/entities/user.entity';
 
 export interface GetUserInfoResult {
   success: boolean;
@@ -14,6 +14,7 @@ export interface GetUserInfoResult {
     lastName: string;
     isEmailVerified: boolean;
     isPhoneVerified: boolean;
+    userType: UserType;
   } | null;
 }
 
@@ -51,6 +52,7 @@ export class GetUserInfoGrpcService {
           lastName: user.lastName,
           isEmailVerified: Boolean(user.isEmailVerified),
           isPhoneVerified: Boolean(user.isPhoneVerified),
+          userType: user.userType,
         },
       };
     } catch (error: any) {

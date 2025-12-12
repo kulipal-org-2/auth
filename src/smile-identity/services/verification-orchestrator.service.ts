@@ -5,14 +5,18 @@ import { KycService } from './kyc/kyc.service';
 import { KybService } from './kyb/kyb.service';
 import { User } from 'src/database/entities/user.entity';
 import { randomUUID } from 'crypto';
-import {
-  BusinessType,
-  BusinessVerificationResponse,
-  KycVerificationResponse,
-} from '../types/smile-identity.types';
 
+export enum IDentificationType {
+  NIN_SLIP = 'NIN_SLIP',
+  BVN = 'BVN',
+  PHONE_NUMBER = 'PHONE_NUMBER',
+  VOTER_ID = 'VOTER_ID',
+  NIN_V2 = 'NIN_V2',
+  BANK_ACCOUNT = 'BANK_ACCOUNT',
+  V_NIN = 'V_NIN',
+}
 export interface KycVerificationData {
-  idType: string;
+  idType: IDentificationType;
   idNumber: string;
   firstName?: string;
   lastName?: string;
@@ -50,6 +54,7 @@ export class VerificationOrchestratorService {
     userId: string,
     verificationType: 'KYC' | 'KYB',
     data: KycVerificationData | KybVerificationData,
+    businessProfileId?: string,
   ): Promise<VerificationResult> {
     this.logger.log(
       `Initiating ${verificationType} verification for user: ${userId}`,
@@ -77,7 +82,7 @@ export class VerificationOrchestratorService {
     }
 
     const jobId = this.generateJobId();
-    let result: KycVerificationResponse | BusinessVerificationResponse;
+    let result;
 
     try {
       if (verificationType === 'KYC') {
@@ -98,7 +103,7 @@ export class VerificationOrchestratorService {
         result = await this.kybService.verifyBusiness(
           {
             registrationNumber: kybData.registrationNumber,
-            businessType: kybData.businessType as BusinessType,
+            businessType: kybData.businessType as any,
             businessName: kybData.businessName,
           },
           userId,
@@ -126,16 +131,12 @@ export class VerificationOrchestratorService {
         resultCode: result.resultCode,
         timestamp: result.timestamp,
       };
-    } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error occurred';
-      const stack = error instanceof Error ? error.stack : undefined;
-
+    } catch (error: any) {
       this.logger.error(
-        `Verification failed for user ${userId}: ${errorMessage}`,
-        stack,
+        `Verification failed for user ${userId}: ${error.message}`,
+        error.stack,
       );
-      throw new BadRequestException(`Verification failed: ${errorMessage}`);
+      throw new BadRequestException(`Verification failed: ${error.message}`);
     }
   }
 
