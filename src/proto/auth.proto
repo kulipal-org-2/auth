@@ -53,15 +53,21 @@ message RegisterDto {
   optional string source = 7;
 }
 
+// Updated WalletDto with new structure
 message WalletDto {
   string id = 1;
   string accountNumber = 2;
-  double balance = 3;
-  string currency = 4;
-  bool isPinSet = 5;
-  bool isActive = 6;
-  optional string lastTransactionAt = 7;
-  string createdAt = 8;
+  double mainBalance = 3;        // Main balance for transactions
+  double ledgerBalance = 4;      // Ledger balance (draft for vendors)
+  string currency = 5;
+  bool isPinSet = 6;
+  bool isActive = 7;
+  optional string lastTransactionAt = 8;
+  string createdAt = 9;
+  string accountOwnerType = 10;  // "user" or "vendor"
+  
+  // For backward compatibility - total balance (main + ledger)
+  optional double balance = 11;
 }
 
 message LoginGoogleDto {
@@ -111,8 +117,6 @@ message GetVendorBusinessProfilesDto {
   optional PaginationParams pagination = 1;
 }
 
-
-
 message UpdateProfileDto {
   optional string firstName = 1;
   optional string lastName = 2;
@@ -149,6 +153,7 @@ message UserDto {
   optional string identityVerificationType = 13;
   optional WalletDto wallet = 14;
 }
+
 message MessageResponse {
   string message = 1;
   int32 statusCode = 2;
@@ -423,6 +428,7 @@ message UserInfo {
   string lastName = 4;
   bool isEmailVerified = 5;
   bool isPhoneVerified = 6;
+  string userType = 7;
 }
 
 message ValidatePasswordRequest {

@@ -1,4 +1,3 @@
-// auth-service/src/auth/services/login.service.ts
 import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -11,7 +10,7 @@ import type {
   LoginResponse,
   RegisteredUser,
 } from '../types/auth.type';
-import { WalletGrpcService } from './wallet-grpc.service'; // Add this
+import { WalletGrpcService } from './wallet-grpc.service';
 
 export type LoginType = {
   email: string;
@@ -25,7 +24,7 @@ export class LoginService {
   constructor(
     private readonly em: EntityManager,
     private jwtService: JwtService,
-    private readonly walletGrpcService: WalletGrpcService, // Inject this
+    private readonly walletGrpcService: WalletGrpcService,
   ) {}
 
   @CreateRequestContext()

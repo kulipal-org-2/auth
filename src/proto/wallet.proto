@@ -11,17 +11,25 @@ service WalletService {
   rpc InitiateResetPin(InitiateResetPinRequest) returns (InitiateResetPinResponse);
   rpc ResetPin(ResetPinRequest) returns (ResetPinResponse);
   rpc ValidateWalletPin(ValidateWalletPinRequest) returns (ValidateWalletPinResponse);
+  rpc ValidateWalletSession(ValidateSessionRequest) returns (ValidateSessionResponse);
+  rpc InvalidateWalletSession(ValidateSessionRequest) returns (MessageResponse);
+  rpc Transfer(TransferRequest) returns (TransferResponse);
+  rpc AddBeneficiary(AddBeneficiaryRequest) returns (AddBeneficiaryResponse);
+  rpc GetBeneficiaries(GetBeneficiariesRequest) returns (GetBeneficiariesResponse);
+  rpc DeleteBeneficiary(DeleteBeneficiaryRequest) returns (MessageResponse);
 }
 
 message WalletDto {
   string id = 1;
   string accountNumber = 2;
-  double balance = 3;
-  string currency = 4;
-  bool isPinSet = 5;
-  bool isActive = 6;
-  optional string lastTransactionAt = 7;
-  string createdAt = 8;
+  double mainBalance = 3;
+  double ledgerBalance = 4;
+  string currency = 5;
+  bool isPinSet = 6;
+  bool isActive = 7;
+  optional string lastTransactionAt = 8;
+  string createdAt = 9;
+  string accountOwnerType = 10; // "user" or "vendor"
 }
 
 message CreateWalletRequest {
@@ -35,7 +43,6 @@ message CreateWalletResponse {
   optional WalletDto wallet = 4;
 }
 
-
 message GetWalletRequest {
   // userId extracted from JWT token in metadata
 }
@@ -47,11 +54,9 @@ message GetWalletResponse {
   optional WalletDto wallet = 4;
 }
 
-
 message GetWalletByAccountNumberRequest {
   string accountNumber = 1;
 }
-
 
 message SetWalletPinRequest {
   string pin = 1;
@@ -62,7 +67,6 @@ message SetWalletPinResponse {
   int32 statusCode = 2;
   string message = 3;
 }
-
 
 message ChangePinRequest {
   string oldPin = 1;
@@ -85,10 +89,6 @@ message InitiateResetPinResponse {
   string message = 3;
 }
 
-// ============================================
-// Reset PIN
-// ============================================
-
 message ResetPinRequest {
   string otp = 1;
   string newPin = 2;
@@ -100,10 +100,6 @@ message ResetPinResponse {
   string message = 3;
 }
 
-// ============================================
-// Validate Wallet PIN
-// ============================================
-
 message ValidateWalletPinRequest {
   string pin = 1;
 }
@@ -113,4 +109,93 @@ message ValidateWalletPinResponse {
   int32 statusCode = 2;
   string message = 3;
   bool isValid = 4;
+  optional string sessionToken = 5;
+  optional string expiresAt = 6;
+}
+
+message ValidateSessionRequest {
+  string sessionToken = 1;
+}
+
+message ValidateSessionResponse {
+  bool success = 1;
+  int32 statusCode = 2;
+  string message = 3;
+  bool isValid = 4;
+  optional string expiresAt = 5;
+}
+
+message TransferRequest {
+  string recipientAccountNumber = 1;
+  double amount = 2;
+  optional string narration = 3;
+}
+
+message TransferResponse {
+  bool success = 1;
+  int32 statusCode = 2;
+  string message = 3;
+  optional TransferDto transfer = 4;
+}
+
+message TransferDto {
+  string id = 1;
+  string reference = 2;
+  double amount = 3;
+  string status = 4;
+  optional string narration = 5;
+  string createdAt = 6;
+}
+
+message AddBeneficiaryRequest {
+  string accountNumber = 1;
+  optional string alias = 2;
+}
+
+message AddBeneficiaryResponse {
+  bool success = 1;
+  int32 statusCode = 2;
+  string message = 3;
+  optional BeneficiaryDto beneficiary = 4;
+}
+
+message GetBeneficiariesRequest {
+  optional int32 page = 1;
+  optional int32 limit = 2;
+}
+
+message GetBeneficiariesResponse {
+  bool success = 1;
+  int32 statusCode = 2;
+  string message = 3;
+  repeated BeneficiaryDto beneficiaries = 4;
+  optional PaginationMeta meta = 5;
+}
+
+message BeneficiaryDto {
+  string id = 1;
+  string accountNumber = 2;
+  optional string alias = 3;
+  string beneficiaryUserId = 4;
+  optional string beneficiaryName = 5;
+  string createdAt = 6;
+}
+
+message DeleteBeneficiaryRequest {
+  string beneficiaryId = 1;
+}
+
+message PaginationMeta {
+  int32 total = 1;
+  int32 page = 2;
+  int32 limit = 3;
+  int32 totalPages = 4;
+  bool hasNext = 5;
+  bool hasPrevious = 6;
+}
+
+message MessageResponse {
+  bool success = 1;
+  int32 statusCode = 2;
+  string message = 3;
 }
