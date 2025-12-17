@@ -7,6 +7,8 @@ service NotificationService {
   rpc Push (PushNotificationDto) returns (google.protobuf.Empty) {}
   rpc Email (EmailDto) returns (google.protobuf.Empty) {}
   rpc Sms (SmsDto) returns (google.protobuf.Empty) {}
+  rpc RegisterDeviceToken (RegisterDeviceTokenDto) returns (MessageResponse) {}
+  rpc UnregisterDeviceToken (UnregisterDeviceTokenDto) returns (MessageResponse) {}
 }
 
 message PushNotificationDto {
@@ -14,6 +16,7 @@ message PushNotificationDto {
   string body = 2;
   repeated string tokens = 3;
   map<string, string> data = 4;
+  optional string userId = 5; // If provided, notification service will fetch tokens for this user
 }
 
 message EmailDto {
@@ -28,4 +31,22 @@ message SmsDto {
   string message = 2;
   string senderId = 3;
   string channel = 4;
+}
+
+message RegisterDeviceTokenDto {
+  string userId = 1;
+  string token = 2;
+  optional string platform = 3; // "ios" or "android" (optional)
+  optional string deviceId = 4;
+}
+
+message UnregisterDeviceTokenDto {
+  string userId = 1;
+  string token = 2;
+}
+
+message MessageResponse {
+  string message = 1;
+  int32 statusCode = 2;
+  bool success = 3;
 }

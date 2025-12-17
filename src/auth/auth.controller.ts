@@ -51,7 +51,10 @@ import { GetProfileService } from './services/get-profile.service';
 import { UpdateProfileService } from './services/update-profile.service';
 import { GetUserByIdService } from './services/get-user-by-id.service';
 import { DeleteProfileService } from './services/delete-profile.service';
-import { IDentificationType, VerificationOrchestratorService } from 'src/smile-identity/services/verification-orchestrator.service';
+import {
+  IDentificationType,
+  VerificationOrchestratorService,
+} from 'src/smile-identity/services/verification-orchestrator.service';
 import { BusinessVerificationService } from 'src/smile-identity/services/kyb/business-verification.service';
 import { GetUserInfoGrpcService } from './services/get-user-info-grpc.service';
 import { ValidatePasswordGrpcService } from './services/validate-password-grpc.service';
@@ -119,22 +122,22 @@ export class AuthController {
     private readonly deleteProfileService: DeleteProfileService,
     private readonly getUserInfoGrpcService: GetUserInfoGrpcService,
     private readonly validatePasswordGrpcService: ValidatePasswordGrpcService,
-  ) { }
+  ) {}
 
   @GrpcMethod('AuthService', 'Login')
-  login(data: LoginRequest): Promise<LoginResponse> {
-    return this.loginService.execute(data);
+  async login(data: LoginRequest): Promise<LoginResponse> {
+    return await this.loginService.execute(data);
   }
 
   @GrpcMethod('AuthService', 'RefreshToken')
-  async refreshAccessToken(
-    data: RefreshTokenRequest,
-  ): Promise<LoginResponse> {
+  async refreshAccessToken(data: RefreshTokenRequest): Promise<LoginResponse> {
     let userId: string | null = null;
-    
+
     try {
-      const decoded = this.jwtAuthGuard.decodeTokenWithoutValidation(data.accessToken);
-      
+      const decoded = this.jwtAuthGuard.decodeTokenWithoutValidation(
+        data.accessToken,
+      );
+
       if (!decoded?.userId) {
         return {
           success: false,
@@ -143,7 +146,7 @@ export class AuthController {
           user: null,
         };
       }
-      
+
       userId = decoded.userId;
     } catch (error: any) {
       return {
@@ -154,44 +157,43 @@ export class AuthController {
       };
     }
 
-    return await this.refreshToken.execute(
-      userId,
-      data.refreshToken,
-    );
+    return await this.refreshToken.execute(userId, data.refreshToken);
   }
 
   @GrpcMethod('AuthService', 'Register')
-  register(data: RegisterRequest): Promise<RegisterResponse> {
-    return this.registerService.execute(data);
+  async register(data: RegisterRequest): Promise<RegisterResponse> {
+    return await this.registerService.execute(data);
   }
 
   @GrpcMethod('AuthService', 'LoginGoogle')
-  loginGoogle(data: LoginGoogleRequest): Promise<LoginResponse> {
-    return this.oauthService.authenticateGoogleUser(data);
+  async loginGoogle(data: LoginGoogleRequest): Promise<LoginResponse> {
+    return await this.oauthService.authenticateGoogleUser(data);
   }
 
   @GrpcMethod('AuthService', 'LoginApple')
-  loginApple(data: LoginAppleRequest): Promise<LoginResponse> {
-    return this.oauthService.authenticateAppleUser(data.code);
+  async loginApple(data: LoginAppleRequest): Promise<LoginResponse> {
+    return await this.oauthService.authenticateAppleUser(data);
   }
 
   @GrpcMethod('AuthService', 'ForgotPassword')
-  forgotPassword(data: ForgotPasswordRequest): Promise<MessageResponse> {
-    return this.forgotPasswordService.execute(data);
+  async forgotPassword(data: ForgotPasswordRequest): Promise<MessageResponse> {
+    return await this.forgotPasswordService.execute(data);
   }
 
   @GrpcMethod('AuthService', 'ValidateToken')
-  validateToken(data: ValidateTokenRequest): Promise<ValidateTokenResponse> {
-    return this.validateTokenService.execute(data);
+  async validateToken(
+    data: ValidateTokenRequest,
+  ): Promise<ValidateTokenResponse> {
+    return await this.validateTokenService.execute(data);
   }
 
   @GrpcMethod('AuthService', 'ResetPassword')
-  resetPassword(data: ResetPasswordRequest): Promise<RMessageResponse> {
-    return this.resetPasswordService.execute(data);
+  async resetPassword(data: ResetPasswordRequest): Promise<RMessageResponse> {
+    return await this.resetPasswordService.execute(data);
   }
 
   @GrpcMethod('AuthService', 'ChangePassword')
-  changePassword(
+  async changePassword(
     data: ChangePasswordRequest,
     metadata: Metadata,
   ): Promise<RMessageResponse> {
@@ -202,22 +204,22 @@ export class AuthController {
     const bearer = typeof authHeader === 'string' ? authHeader : '';
     const token = bearer.startsWith('Bearer ') ? bearer.slice(7) : bearer;
 
-    return this.changePasswordService.execute(data, token);
+    return await this.changePasswordService.execute(data, token);
   }
 
   @GrpcMethod('AuthService', 'SendEmailOtp')
-  sendEmailOtp(data: SendEmailOtpRequest): Promise<MessageResponse> {
-    return this.requestOtpService.sendEmailOtp(data);
+  async sendEmailOtp(data: SendEmailOtpRequest): Promise<MessageResponse> {
+    return await this.requestOtpService.sendEmailOtp(data);
   }
 
   @GrpcMethod('AuthService', 'SendSmsOtp')
-  sendSmsOtp(data: SendSmsOtpRequest): Promise<MessageResponse> {
-    return this.requestOtpService.sendSmsOtp(data);
+  async sendSmsOtp(data: SendSmsOtpRequest): Promise<MessageResponse> {
+    return await this.requestOtpService.sendSmsOtp(data);
   }
 
   @GrpcMethod('AuthService', 'ValidateOtp')
-  validateOtp(data: ValidateOtpRequest): Promise<ValidateOtpResponse> {
-    return this.validateOtpService.validateOtp(data);
+  async validateOtp(data: ValidateOtpRequest): Promise<ValidateOtpResponse> {
+    return await this.validateOtpService.validateOtp(data);
   }
 
   @GrpcMethod('AuthService', 'GetProfile')
@@ -233,17 +235,20 @@ export class AuthController {
       };
     }
 
-    return this.getProfileService.execute(authResult.userId);
+    return await this.getProfileService.execute(authResult.userId);
   }
 
   @GrpcMethod('AuthService', 'GetUserInfo')
   async getUserInfo(data: { userId: string }) {
-    return this.getUserInfoGrpcService.execute(data.userId);
+    return await this.getUserInfoGrpcService.execute(data.userId);
   }
 
   @GrpcMethod('AuthService', 'ValidatePassword')
   async validatePassword(data: { userId: string; password: string }) {
-    return this.validatePasswordGrpcService.execute(data.userId, data.password);
+    return await this.validatePasswordGrpcService.execute(
+      data.userId,
+      data.password,
+    );
   }
 
   @GrpcMethod('AuthService', 'UpdateProfile')
@@ -262,12 +267,12 @@ export class AuthController {
       };
     }
 
-    return this.updateProfileService.execute(authResult.userId, data);
+    return await this.updateProfileService.execute(authResult.userId, data);
   }
 
   @GrpcMethod('AuthService', 'GetUserById')
   async getUserById(data: { userId: string }): Promise<ProfileResponse> {
-    return this.getUserByIdService.execute(data.userId);
+    return await this.getUserByIdService.execute(data.userId);
   }
 
   @GrpcMethod('AuthService', 'DeleteProfile')
@@ -285,7 +290,7 @@ export class AuthController {
       };
     }
 
-    return this.deleteProfileService.execute(authResult.userId);
+    return await this.deleteProfileService.execute(authResult.userId);
   }
 
   @GrpcMethod('AuthService', 'CreateBusinessProfile')
@@ -304,7 +309,7 @@ export class AuthController {
       };
     }
 
-    return this.businessProfileService.createBusinessProfile(
+    return await this.businessProfileService.createBusinessProfile(
       authResult.userId,
       data,
     );
@@ -326,7 +331,7 @@ export class AuthController {
       };
     }
 
-    return this.businessProfileService.updateBusinessProfile(
+    return await this.businessProfileService.updateBusinessProfile(
       authResult.userId,
       data,
     );
@@ -398,7 +403,7 @@ export class AuthController {
         : 10;
 
     const pagination = { page, limit };
-    return this.businessProfileService.getVendorBusinessProfiles(
+    return await this.businessProfileService.getVendorBusinessProfiles(
       authResult.userId,
       pagination,
     );
@@ -408,7 +413,7 @@ export class AuthController {
   async searchBusinessProfiles(
     data: SearchBusinessProfilesRequest,
   ): Promise<SearchBusinessProfilesResponse> {
-    return this.businessProfileService.searchBusinessProfiles(data);
+    return await this.businessProfileService.searchBusinessProfiles(data);
   }
 
   @GrpcMethod('AuthService', 'InitiateIdentityVerification')

@@ -8,10 +8,21 @@ import type {
   RegisteredUser,
   LoginCredentials,
   BusinessProfileSummary,
+  Platform,
 } from '../types/auth.type';
 import { OtpChannel } from '../enums/otp.enum';
 import { LoginService } from './login.service';
-import { WalletGrpcService } from './wallet-grpc.service';
+import { DeviceTokenGrpcService } from './device-token-grpc.service';
+
+interface ValidateOtpInternalParams {
+  otpChannel: OtpChannel;
+  identifier: string;
+  token: string;
+  user: User;
+  fcmToken?: string;
+  platform?: Platform;
+  deviceId?: string;
+}
 
 @Injectable()
 export class ValidateOtpService {
@@ -20,7 +31,7 @@ export class ValidateOtpService {
   constructor(
     private readonly em: EntityManager,
     private readonly loginService: LoginService,
-    private readonly walletGrpcService: WalletGrpcService,
+    private readonly deviceTokenGrpcService: DeviceTokenGrpcService,
   ) {}
 
   @CreateRequestContext()
@@ -66,20 +77,24 @@ export class ValidateOtpService {
       identifier,
       token: data.token,
       user,
+      fcmToken: data.deviceToken?.fcmToken,
+      platform: data.deviceToken?.platform,
+      deviceId: data.deviceToken?.deviceId,
     });
   }
 
-  private async validateOtpInternal({
+  private async validateOtpInternal(
+    params: ValidateOtpInternalParams,
+  ): Promise<ValidateOtpResponse> {
+    const {
     otpChannel,
     identifier,
     token,
     user,
-  }: {
-    otpChannel: OtpChannel;
-    identifier: string;
-    token: string;
-    user: User;
-  }): Promise<ValidateOtpResponse> {
+      fcmToken,
+      platform,
+      deviceId,
+    } = params;
     const otpRepository = this.em.getRepository(Otp);
     const otpRecord = await otpRepository.findOne({
       identifier,
@@ -127,6 +142,27 @@ export class ValidateOtpService {
     const credentials: LoginCredentials | undefined = isVerified
       ? await this.loginService.generateCredentials(user.id)
       : undefined;
+
+    // Register device token if provided and verified (optional, don't fail if it fails)
+    if (isVerified && fcmToken) {
+      try {
+        await this.deviceTokenGrpcService.registerToken({
+          userId: user.id,
+          token: fcmToken,
+          platform: platform,
+          deviceId,
+        });
+        this.logger.log(
+          `Device token registered for user ${user.id} during OTP validation`,
+        );
+      } catch (error: any) {
+        this.logger.warn(
+          `Failed to register device token during OTP validation for user ${user.id}: ${error.message}`,
+        );
+        // Don't fail OTP validation if token registration fails
+      }
+    }
+
     let businessProfiles: BusinessProfileSummary[] = [];
     if (isVerified && user.userType === UserType.VENDOR) {
       const profiles = await this.em.find(
@@ -157,25 +193,6 @@ export class ValidateOtpService {
       }
     }
 
-    let walletInfo: RegisteredUser['wallet'] | undefined;
-    if (isVerified) {
-      try {
-        const walletResponse = await this.walletGrpcService.getWallet(user.id);
-        
-        if (walletResponse.success && walletResponse.wallet) {
-          walletInfo = this.walletGrpcService.mapWalletToUserFormat(walletResponse.wallet);
-          this.logger.log(`Fetched wallet info for user ${user.id}`);
-        } else {
-          this.logger.warn(`No wallet found or failed to fetch wallet for user ${user.id}: ${walletResponse.message}`);
-        }
-      } catch (walletError: any) {
-        this.logger.error(
-          `Error fetching wallet for user ${user.id}: ${walletError?.message ?? walletError}`,
-          walletError?.stack,
-        );
-      }
-    }
-
     const userPayload: RegisteredUser | null = isVerified
       ? {
           id: user.id,
@@ -191,7 +208,6 @@ export class ValidateOtpService {
           businessProfiles,
           isIdentityVerified: Boolean(user.isIdentityVerified),
           identityVerificationType: user.identityVerificationType ?? undefined,
-          wallet: walletInfo ?? ({} as RegisteredUser['wallet']),
         }
       : null;
 
