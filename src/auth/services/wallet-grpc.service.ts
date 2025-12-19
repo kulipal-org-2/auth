@@ -27,7 +27,7 @@ export class WalletGrpcService implements OnModuleInit {
     @Inject('WALLET_PACKAGE')
     private readonly grpcClient: ClientGrpc,
     private readonly jwtService: JwtService,
-  ) {}
+  ) { }
 
   onModuleInit() {
     this.walletClient =
@@ -173,17 +173,26 @@ export class WalletGrpcService implements OnModuleInit {
     if (!walletDto) {
       return undefined;
     }
-    const createdAt = walletDto.createdAt;
 
-    return {
+    // For backward compatibility, calculate total balance as mainBalance + ledgerBalance
+    const totalBalance = (walletDto.mainBalance || 0) + (walletDto.ledgerBalance || 0);
+
+    // Map to the new structure, but also include balance for backward compatibility
+    const mappedWallet: WalletDto & { balance?: number } = {
       id: walletDto.id,
       accountNumber: walletDto.accountNumber,
-      balance: walletDto.balance,
+      mainBalance: walletDto.mainBalance || 0,
+      ledgerBalance: walletDto.ledgerBalance || 0,
       currency: walletDto.currency,
       isPinSet: walletDto.isPinSet,
       isActive: walletDto.isActive,
       lastTransactionAt: walletDto.lastTransactionAt ?? null,
-      createdAt,
+      createdAt: walletDto.createdAt,
+      accountOwnerType: walletDto.accountOwnerType,
+      // Include balance for backward compatibility with existing clients
+      balance: totalBalance
     };
+
+    return mappedWallet;
   }
 }

@@ -30,6 +30,7 @@ import { BusinessVerificationService } from 'src/smile-identity/services/kyb/bus
 import { WalletGrpcService } from './services/wallet-grpc.service';
 import { GetUserInfoGrpcService } from './services/get-user-info-grpc.service';
 import { ValidatePasswordGrpcService } from './services/validate-password-grpc.service';
+import { DeviceTokenGrpcService } from './services/device-token-grpc.service';
 
 @Module({
   imports: [
@@ -86,6 +87,7 @@ import { ValidatePasswordGrpcService } from './services/validate-password-grpc.s
     WalletGrpcService,
     GetUserInfoGrpcService,
     ValidatePasswordGrpcService,
+    DeviceTokenGrpcService,
   ],
   exports: [NotificationService, WalletGrpcService],
 })

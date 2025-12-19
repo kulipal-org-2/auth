@@ -12,10 +12,13 @@ export class DeleteProfileService {
 
   @CreateRequestContext()
   async execute(userId: string): Promise<MessageResponse> {
-    this.logger.log(`Deleting profile for user ID: ${userId}`);
+    this.logger.log(`Soft deleting profile for user ID: ${userId}`);
 
     try {
-      const user = await this.em.findOne(User, { id: userId });
+      const user = await this.em.findOne(
+        User,
+        { id: userId },
+      );
 
       if (!user) {
         this.logger.warn(`User with id ${userId} not found`);
@@ -26,9 +29,27 @@ export class DeleteProfileService {
         };
       }
 
-      await this.em.removeAndFlush(user);
+      const deletedAt = new Date();
 
-      this.logger.log(`Successfully deleted profile for user ID: ${userId}`);
+      if (user.email && user.email.includes('@')) {
+        const [localPart, domain] = user.email.split('@');
+        user.email = `${localPart}_${deletedAt.toISOString()}@${domain}`;
+        this.logger.log(`Updated email to ${user.email} for user ${userId}`);
+      }
+
+      if (user.phoneNumber) {
+        user.phoneNumber = `${user.phoneNumber}_${deletedAt.toISOString()}`;
+        this.logger.log(
+          `Updated phoneNumber to ${user.phoneNumber} for user ${userId}`,
+        );
+      }
+
+      user.deletedAt = deletedAt;
+      await this.em.flush();
+
+      this.logger.log(
+        `Successfully soft deleted profile for user ID: ${userId}`,
+      );
 
       return {
         message: 'Profile deleted successfully',
@@ -48,4 +69,3 @@ export class DeleteProfileService {
     }
   }
 }
-

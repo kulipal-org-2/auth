@@ -1,6 +1,14 @@
 // src/auth/types/auth.type.ts
 import type { UserType } from 'src/database/entities/user.entity';
 
+export type Platform = 'ios' | 'android';
+
+export type DeviceTokenFields = {
+  fcmToken?: string;
+  platform?: Platform;
+  deviceId?: string;
+};
+
 export type RegisterRequest = {
   firstName: string;
   lastName: string;
@@ -9,6 +17,7 @@ export type RegisterRequest = {
   agreeToTerms: boolean;
   source?: string;
   phoneNumber: string;
+  deviceToken?: DeviceTokenFields;
 };
 
 export type BusinessProfileSummary = {
@@ -40,20 +49,10 @@ export type RegisteredUser = {
   isEmailVerified: boolean;
   isPhoneVerified: boolean;
   avatarUrl?: string;
-  source?: string
+  source?: string;
   businessProfiles?: BusinessProfileSummary[];
   isIdentityVerified?: boolean;
   identityVerificationType?: 'KYC' | 'KYB';
-  wallet?: {
-    id: string;
-    accountNumber: string;
-    balance: number;
-    currency: string;
-    isPinSet: boolean;
-    isActive: boolean;
-    lastTransactionAt?: string;
-    createdAt: string;
-  } | {};
 };
 
 export type RefreshTokenRequest = {
@@ -84,15 +83,18 @@ export type RegisterResponse = {
 export type LoginRequest = {
   email: string;
   password: string;
+  deviceToken?: DeviceTokenFields;
 };
 
 export type LoginGoogleRequest = {
   accessToken: string;
   refreshToken: string;
+  deviceToken?: DeviceTokenFields;
 };
 
 export type LoginAppleRequest = {
   code: string;
+  deviceToken?: DeviceTokenFields;
 };
 
 export type ForgotPasswordRequest = {
@@ -131,6 +133,7 @@ export type ValidateOtpRequest = {
   email?: string;
   phoneNumber?: string;
   token: string;
+  deviceToken?: DeviceTokenFields;
 };
 
 export type ValidateOtpResponse = {

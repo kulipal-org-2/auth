@@ -8,8 +8,9 @@ import { type CreateUserType } from 'kulipal-shared';
 import { hash } from 'argon2';
 import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
 import { User, UserType } from 'src/database';
-import type { RegisterResponse, RegisteredUser } from '../types/auth.type';
+import type { RegisterRequest, RegisterResponse } from '../types/auth.type';
 import { WalletGrpcService } from './wallet-grpc.service';
+import { DeviceTokenGrpcService } from './device-token-grpc.service';
 
 @Injectable()
 export class RegisterService {
@@ -17,10 +18,11 @@ export class RegisterService {
   constructor(
     private readonly em: EntityManager,
     private readonly walletGrpcService: WalletGrpcService,
-  ) { }
+    private readonly deviceTokenGrpcService: DeviceTokenGrpcService,
+  ) {}
 
   @CreateRequestContext()
-  async execute(data: CreateUserType): Promise<RegisterResponse> {
+  async execute(data: RegisterRequest): Promise<RegisterResponse> {
     this.logger.log(`Attempting to register user with email ${data.email}`);
     const {
       email,
@@ -95,12 +97,9 @@ export class RegisterService {
       `Successfully created user with email ${normalizedEmail} and id ${user.id}`,
     );
 
-    let walletInfo: RegisteredUser['wallet'] | undefined;
     try {
       const walletResult = await this.walletGrpcService.createWallet(user.id);
-
       if (walletResult.success && walletResult.wallet) {
-        walletInfo = this.walletGrpcService.mapWalletToUserFormat(walletResult.wallet);
         this.logger.log(
           `Successfully created wallet with account number ${walletResult.wallet.accountNumber} for user ${user.id}`,
         );
@@ -108,29 +107,31 @@ export class RegisterService {
         this.logger.warn(
           `Failed to create wallet for user ${user.id}: ${walletResult.message}`,
         );
-        // Try to fetch wallet in case it was created but response failed
-        try {
-          const getWalletResult = await this.walletGrpcService.getWallet(user.id);
-          if (getWalletResult.success && getWalletResult.wallet) {
-            walletInfo = this.walletGrpcService.mapWalletToUserFormat(getWalletResult.wallet);
-          }
-        } catch (fetchError) {
-          this.logger.warn(`Could not fetch wallet for user ${user.id}`);
-        }
       }
     } catch (walletError: any) {
       this.logger.error(
         `Error creating wallet for user ${user.id}: ${walletError.message}`,
         walletError.stack,
       );
-      // Try to fetch wallet in case it was created but error occurred
+    }
+
+    // Register device token if provided (optional, don't fail if it fails)
+    if (data.deviceToken?.fcmToken) {
       try {
-        const getWalletResult = await this.walletGrpcService.getWallet(user.id);
-        if (getWalletResult.success && getWalletResult.wallet) {
-          walletInfo = this.walletGrpcService.mapWalletToUserFormat(getWalletResult.wallet);
-        }
-      } catch (fetchError) {
-        this.logger.warn(`Could not fetch wallet for user ${user.id}`);
+        await this.deviceTokenGrpcService.registerToken({
+          userId: user.id,
+          token: data.deviceToken.fcmToken,
+          platform: data.deviceToken.platform,
+          deviceId: data.deviceToken.deviceId,
+        });
+        this.logger.log(
+          `Device token registered for user ${user.id} during login`,
+        );
+      } catch (error: any) {
+        this.logger.warn(
+          `Failed to register device token during login for user ${user.id}: ${error.message}`,
+        );
+        // Don't fail login if token registration fails
       }
     }
 
@@ -151,7 +152,6 @@ export class RegisterService {
         businessProfiles: [],
         isIdentityVerified: Boolean(user.isIdentityVerified),
         identityVerificationType: user.identityVerificationType ?? undefined,
-        wallet: walletInfo ?? ({} as RegisteredUser['wallet']),
       },
     };
   }

@@ -33,9 +33,17 @@ service AuthService {
   rpc DeleteProfile (google.protobuf.Empty) returns (MessageResponse) {}
 }
 
+// Reusable device token fields
+message DeviceTokenFields {
+  optional string fcmToken = 1;
+  optional string platform = 2; // "ios" or "android" (optional)
+  optional string deviceId = 3;
+}
+
 message LoginDto {
   string email = 1;
   string password = 2;
+  optional DeviceTokenFields deviceToken = 3;
 }
 
 message RefreshTokenDto {
@@ -51,26 +59,18 @@ message RegisterDto {
   bool agreeToTerms = 5;
   string phoneNumber = 6;
   optional string source = 7;
-}
-
-message WalletDto {
-  string id = 1;
-  string accountNumber = 2;
-  double balance = 3;
-  string currency = 4;
-  bool isPinSet = 5;
-  bool isActive = 6;
-  optional string lastTransactionAt = 7;
-  string createdAt = 8;
+  optional DeviceTokenFields deviceToken = 8;
 }
 
 message LoginGoogleDto {
   string accessToken = 1;
   string refreshToken = 2;
+  optional DeviceTokenFields deviceToken = 3;
 }
 
 message LoginAppleDto {
   string code = 1;
+  optional DeviceTokenFields deviceToken = 2;
 }
 
 message ForgotPasswordDto {
@@ -105,13 +105,12 @@ message ValidateOtpDto {
   optional string email = 1;
   optional string phoneNumber = 2;
   string token = 3;
+  optional DeviceTokenFields deviceToken = 4;
 }
 
 message GetVendorBusinessProfilesDto {
   optional PaginationParams pagination = 1;
 }
-
-
 
 message UpdateProfileDto {
   optional string firstName = 1;
@@ -147,8 +146,8 @@ message UserDto {
   repeated BusinessProfileSummaryDto businessProfiles = 11;
   bool isIdentityVerified = 12;
   optional string identityVerificationType = 13;
-  optional WalletDto wallet = 14;
 }
+
 message MessageResponse {
   string message = 1;
   int32 statusCode = 2;
@@ -423,6 +422,7 @@ message UserInfo {
   string lastName = 4;
   bool isEmailVerified = 5;
   bool isPhoneVerified = 6;
+  string userType = 7;
 }
 
 message ValidatePasswordRequest {
