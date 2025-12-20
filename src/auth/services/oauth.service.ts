@@ -258,7 +258,6 @@ export class OauthService {
           userId,
           token: data.deviceToken.fcmToken,
           platform: data.deviceToken.platform,
-          deviceId: data.deviceToken.deviceId,
         });
         this.logger.log(
           `Device token registered for user ${userId} during login`,

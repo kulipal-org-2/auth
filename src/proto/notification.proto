@@ -37,7 +37,6 @@ message RegisterDeviceTokenDto {
   string userId = 1;
   string token = 2;
   optional string platform = 3; // "ios" or "android" (optional)
-  optional string deviceId = 4;
 }
 
 message UnregisterDeviceTokenDto {

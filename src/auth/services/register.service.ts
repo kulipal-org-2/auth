@@ -122,7 +122,6 @@ export class RegisterService {
           userId: user.id,
           token: data.deviceToken.fcmToken,
           platform: data.deviceToken.platform,
-          deviceId: data.deviceToken.deviceId,
         });
         this.logger.log(
           `Device token registered for user ${user.id} during login`,

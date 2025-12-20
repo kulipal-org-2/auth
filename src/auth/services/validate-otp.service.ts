@@ -21,7 +21,6 @@ interface ValidateOtpInternalParams {
   user: User;
   fcmToken?: string;
   platform?: Platform;
-  deviceId?: string;
 }
 
 @Injectable()
@@ -79,7 +78,6 @@ export class ValidateOtpService {
       user,
       fcmToken: data.deviceToken?.fcmToken,
       platform: data.deviceToken?.platform,
-      deviceId: data.deviceToken?.deviceId,
     });
   }
 
@@ -93,7 +91,6 @@ export class ValidateOtpService {
     user,
       fcmToken,
       platform,
-      deviceId,
     } = params;
     const otpRepository = this.em.getRepository(Otp);
     const otpRecord = await otpRepository.findOne({
@@ -150,7 +147,6 @@ export class ValidateOtpService {
           userId: user.id,
           token: fcmToken,
           platform: platform,
-          deviceId,
         });
         this.logger.log(
           `Device token registered for user ${user.id} during OTP validation`,

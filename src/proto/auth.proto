@@ -37,7 +37,6 @@ service AuthService {
 message DeviceTokenFields {
   optional string fcmToken = 1;
   optional string platform = 2; // "ios" or "android" (optional)
-  optional string deviceId = 3;
 }
 
 message LoginDto {
