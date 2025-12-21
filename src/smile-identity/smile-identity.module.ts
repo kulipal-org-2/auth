@@ -23,6 +23,12 @@ import { VerificationOrchestratorService } from './services/verification-orchest
     BusinessVerificationService,
     VerificationOrchestratorService,
   ],
-  exports: [SmileIdentityService, VerificationOrchestratorService, KybService, KybService, SmileCoreService],
+  exports: [
+    SmileIdentityService,
+    VerificationOrchestratorService,
+    KybService,
+    KybService,
+    SmileCoreService,
+  ],
 })
-export class SmileIdentityModule { }
+export class SmileIdentityModule {}

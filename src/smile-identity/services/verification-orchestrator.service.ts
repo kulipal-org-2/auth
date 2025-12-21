@@ -7,151 +7,160 @@ import { User } from 'src/database/entities/user.entity';
 import { randomUUID } from 'crypto';
 
 export enum IDentificationType {
-    NIN_SLIP = 'NIN_SLIP',
-    BVN = 'BVN',
-    PHONE_NUMBER = 'PHONE_NUMBER',
-    VOTER_ID = 'VOTER_ID',
-    NIN_V2 = 'NIN_V2',
-    BANK_ACCOUNT = 'BANK_ACCOUNT',
-    V_NIN = 'V_NIN',
+  NIN_SLIP = 'NIN_SLIP',
+  BVN = 'BVN',
+  PHONE_NUMBER = 'PHONE_NUMBER',
+  VOTER_ID = 'VOTER_ID',
+  NIN_V2 = 'NIN_V2',
+  BANK_ACCOUNT = 'BANK_ACCOUNT',
+  V_NIN = 'V_NIN',
 }
 export interface KycVerificationData {
-    idType: IDentificationType;
-    idNumber: string;
-    firstName?: string;
-    lastName?: string;
-    dob?: string;
+  idType: IDentificationType;
+  idNumber: string;
+  firstName?: string;
+  lastName?: string;
+  dob?: string;
 }
 
 export interface KybVerificationData {
-    registrationNumber: string;
-    businessType: string;
-    businessName?: string;
+  registrationNumber: string;
+  businessType: string;
+  businessName?: string;
 }
 
 export interface VerificationResult {
-    success: boolean;
-    message: string;
-    smileJobId: string;
-    resultCode: string;
-    skipVerification?: boolean;
-    user?: User;
-    timestamp: string;
+  success: boolean;
+  message: string;
+  smileJobId: string;
+  resultCode: string;
+  skipVerification?: boolean;
+  user?: User;
+  timestamp: string;
 }
 
 @Injectable()
 export class VerificationOrchestratorService {
-    private readonly logger = new Logger(VerificationOrchestratorService.name);
+  private readonly logger = new Logger(VerificationOrchestratorService.name);
 
-    constructor(
-        private readonly em: EntityManager,
-        private readonly kycService: KycService,
-        private readonly kybService: KybService,
-    ) { }
+  constructor(
+    private readonly em: EntityManager,
+    private readonly kycService: KycService,
+    private readonly kybService: KybService,
+  ) {}
 
-    @CreateRequestContext()
-    async initiateVerification(
-        userId: string,
-        verificationType: 'KYC' | 'KYB',
-        data: KycVerificationData | KybVerificationData,
-        businessProfileId?: string,
-    ): Promise<VerificationResult> {
-        this.logger.log(`Initiating ${verificationType} verification for user: ${userId}`);
+  @CreateRequestContext()
+  async initiateVerification(
+    userId: string,
+    verificationType: 'KYC' | 'KYB',
+    data: KycVerificationData | KybVerificationData,
+    businessProfileId?: string,
+  ): Promise<VerificationResult> {
+    this.logger.log(
+      `Initiating ${verificationType} verification for user: ${userId}`,
+    );
 
-        const user = await this.em.findOne(User, { id: userId });
-        if (!user) {
-            throw new BadRequestException('User not found');
-        }
-
-        // If user is already verified, return existing status
-        if (user.isIdentityVerified) {
-            this.logger.log(`User ${userId} is already verified, skipping verification`);
-            return {
-                success: true,
-                message: 'User already verified',
-                smileJobId: user.lastVerificationId || 'N/A',
-                resultCode: 'ALREADY_VERIFIED',
-                skipVerification: true,
-                user,
-                timestamp: new Date().toISOString(),
-            };
-        }
-
-        const jobId = this.generateJobId();
-        let result;
-
-        try {
-            if (verificationType === 'KYC') {
-                const kycData = data as KycVerificationData;
-                result = await this.kycService.verifyKyc(
-                    {
-                        idType: kycData.idType,
-                        idNumber: kycData.idNumber,
-                        firstName: kycData.firstName,
-                        lastName: kycData.lastName,
-                        dob: kycData.dob,
-                    },
-                    userId,
-                    jobId,
-                );
-            } else {
-                const kybData = data as KybVerificationData;
-                result = await this.kybService.verifyBusiness(
-                    {
-                        registrationNumber: kybData.registrationNumber,
-                        businessType: kybData.businessType as any,
-                        businessName: kybData.businessName,
-                    },
-                    userId,
-                    jobId,
-                );
-            }
-
-            // Update user verification status if successful
-            if (result.success) {
-                user.isIdentityVerified = true;
-                user.identityVerificationType = verificationType;
-                user.identityVerifiedAt = new Date();
-                user.lastVerificationId = result.smileJobId;
-
-                await this.em.flush();
-                this.logger.log(`Successfully updated verification status for user: ${userId}`);
-            }
-
-            return {
-                success: result.success,
-                message: result.message,
-                smileJobId: result.smileJobId,
-                resultCode: result.resultCode,
-                timestamp: result.timestamp,
-            };
-        } catch (error: any) {
-            this.logger.error(`Verification failed for user ${userId}: ${error.message}`, error.stack);
-            throw new BadRequestException(`Verification failed: ${error.message}`);
-        }
-    }
-    
-    @CreateRequestContext()
-    async getUserVerificationStatus(userId: string): Promise<{
-        isIdentityVerified: boolean;
-        identityVerificationType?: 'KYC' | 'KYB';
-        identityVerifiedAt?: Date;
-        lastVerificationId?: string;
-    }> {
-        const user = await this.em.findOne(User, { id: userId });
-        if (!user) {
-            throw new BadRequestException('User not found');
-        }
-
-        return {
-            isIdentityVerified: user.isIdentityVerified ?? false,
-            identityVerificationType: user.identityVerificationType,
-            identityVerifiedAt: user.identityVerifiedAt,
-            lastVerificationId: user.lastVerificationId,
-        };
+    const user = await this.em.findOne(User, { id: userId });
+    if (!user) {
+      throw new BadRequestException('User not found');
     }
 
-    private generateJobId(): string {
-        return `job_${randomUUID()}`;
+    // If user is already verified, return existing status
+    if (user.isIdentityVerified) {
+      this.logger.log(
+        `User ${userId} is already verified, skipping verification`,
+      );
+      return {
+        success: true,
+        message: 'User already verified',
+        smileJobId: user.lastVerificationId || 'N/A',
+        resultCode: 'ALREADY_VERIFIED',
+        skipVerification: true,
+        user,
+        timestamp: new Date().toISOString(),
+      };
     }
+
+    const jobId = this.generateJobId();
+    let result;
+
+    try {
+      if (verificationType === 'KYC') {
+        const kycData = data as KycVerificationData;
+        result = await this.kycService.verifyKyc(
+          {
+            idType: kycData.idType,
+            idNumber: kycData.idNumber,
+            firstName: kycData.firstName,
+            lastName: kycData.lastName,
+            dob: kycData.dob,
+          },
+          userId,
+          jobId,
+        );
+      } else {
+        const kybData = data as KybVerificationData;
+        result = await this.kybService.verifyBusiness(
+          {
+            registrationNumber: kybData.registrationNumber,
+            businessType: kybData.businessType as any,
+            businessName: kybData.businessName,
+          },
+          userId,
+          jobId,
+        );
+      }
+
+      // Update user verification status if successful
+      if (result.success) {
+        user.isIdentityVerified = true;
+        user.identityVerificationType = verificationType;
+        user.identityVerifiedAt = new Date();
+        user.lastVerificationId = result.smileJobId;
+
+        await this.em.flush();
+        this.logger.log(
+          `Successfully updated verification status for user: ${userId}`,
+        );
+      }
+
+      return {
+        success: result.success,
+        message: result.message,
+        smileJobId: result.smileJobId,
+        resultCode: result.resultCode,
+        timestamp: result.timestamp,
+      };
+    } catch (error: any) {
+      this.logger.error(
+        `Verification failed for user ${userId}: ${error.message}`,
+        error.stack,
+      );
+      throw new BadRequestException(`Verification failed: ${error.message}`);
+    }
+  }
+
+  @CreateRequestContext()
+  async getUserVerificationStatus(userId: string): Promise<{
+    isIdentityVerified: boolean;
+    identityVerificationType?: 'KYC' | 'KYB';
+    identityVerifiedAt?: Date;
+    lastVerificationId?: string;
+  }> {
+    const user = await this.em.findOne(User, { id: userId });
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    return {
+      isIdentityVerified: user.isIdentityVerified ?? false,
+      identityVerificationType: user.identityVerificationType,
+      identityVerifiedAt: user.identityVerifiedAt,
+      lastVerificationId: user.lastVerificationId,
+    };
+  }
+
+  private generateJobId(): string {
+    return `job_${randomUUID()}`;
+  }
 }

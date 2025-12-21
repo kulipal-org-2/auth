@@ -33,9 +33,16 @@ service AuthService {
   rpc DeleteProfile (google.protobuf.Empty) returns (MessageResponse) {}
 }
 
+// Reusable device token fields
+message DeviceTokenFields {
+  optional string fcmToken = 1;
+  optional string platform = 2; // "ios" or "android" (optional)
+}
+
 message LoginDto {
   string email = 1;
   string password = 2;
+  optional DeviceTokenFields deviceToken = 3;
 }
 
 message RefreshTokenDto {
@@ -51,32 +58,18 @@ message RegisterDto {
   bool agreeToTerms = 5;
   string phoneNumber = 6;
   optional string source = 7;
-}
-
-// Updated WalletDto with new structure
-message WalletDto {
-  string id = 1;
-  string accountNumber = 2;
-  double mainBalance = 3;        // Main balance for transactions
-  double ledgerBalance = 4;      // Ledger balance (draft for vendors)
-  string currency = 5;
-  bool isPinSet = 6;
-  bool isActive = 7;
-  optional string lastTransactionAt = 8;
-  string createdAt = 9;
-  string accountOwnerType = 10;  // "user" or "vendor"
-  
-  // For backward compatibility - total balance (main + ledger)
-  optional double balance = 11;
+  optional DeviceTokenFields deviceToken = 8;
 }
 
 message LoginGoogleDto {
   string accessToken = 1;
   string refreshToken = 2;
+  optional DeviceTokenFields deviceToken = 3;
 }
 
 message LoginAppleDto {
   string code = 1;
+  optional DeviceTokenFields deviceToken = 2;
 }
 
 message ForgotPasswordDto {
@@ -111,6 +104,7 @@ message ValidateOtpDto {
   optional string email = 1;
   optional string phoneNumber = 2;
   string token = 3;
+  optional DeviceTokenFields deviceToken = 4;
 }
 
 message GetVendorBusinessProfilesDto {
@@ -151,7 +145,6 @@ message UserDto {
   repeated BusinessProfileSummaryDto businessProfiles = 11;
   bool isIdentityVerified = 12;
   optional string identityVerificationType = 13;
-  optional WalletDto wallet = 14;
 }
 
 message MessageResponse {

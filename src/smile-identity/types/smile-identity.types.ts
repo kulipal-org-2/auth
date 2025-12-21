@@ -22,6 +22,7 @@ export interface IdInfo {
   last_name?: string;
   dob?: string;
   business_name?: string;
+  [key: string]: string | undefined;
 }
 
 export type BusinessType = 'bn' | 'co' | 'it';
@@ -47,10 +48,32 @@ export interface BusinessVerificationResponse {
   message: string;
   resultCode: string;
   smileJobId: string;
-  companyInformation?: any;
-  directors?: any[];
-  beneficialOwners?: any[];
+  companyInformation?: CompanyInformation;
+  directors?: Director[];
+  beneficialOwners?: BeneficialOwner[];
   timestamp: string;
+}
+
+export interface CompanyInformation {
+  legal_name?: string;
+  registration_number?: string;
+  company_type?: string;
+  status?: string;
+  date_of_registration?: string;
+  address?: string;
+  [key: string]: unknown;
+}
+
+export interface Director {
+  name?: string;
+  designation?: string;
+  [key: string]: unknown;
+}
+
+export interface BeneficialOwner {
+  name?: string;
+  ownership_percentage?: string;
+  [key: string]: unknown;
 }
 
 // KYC Interfaces

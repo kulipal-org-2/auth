@@ -10,9 +10,14 @@ import { CustomLogger as Logger } from 'kulipal-shared';
 import { CreateRequestContext, EntityManager } from '@mikro-orm/postgresql';
 import { BusinessProfile, RefreshToken, User, UserType } from 'src/database';
 import { createHash, randomBytes } from 'crypto';
-import type { BusinessProfileSummary, LoginResponse, RegisteredUser } from '../types/auth.type';
+import type {
+  BusinessProfileSummary,
+  LoginAppleRequest,
+  LoginResponse,
+  RegisteredUser,
+} from '../types/auth.type';
 import { type LoginGoogleRequest } from '../types/auth.type';
-import { WalletGrpcService } from './wallet-grpc.service'; // Add this
+import { DeviceTokenGrpcService } from './device-token-grpc.service';
 
 const getOauthClient = ({
   client_id,
@@ -34,7 +39,7 @@ export class OauthService {
     private configService: ConfigService,
     private jwt: JwtService,
     private readonly em: EntityManager,
-    private readonly walletGrpcService: WalletGrpcService, // Inject this
+    private readonly deviceTokenGrpcService: DeviceTokenGrpcService,
   ) {
     this.oauthClient = getOauthClient({
       client_id: this.configService.get<string>('GOOGLE_CLIENT_ID') ?? '',
@@ -67,10 +72,10 @@ export class OauthService {
   }
 
   @CreateRequestContext()
-  async authenticateGoogleUser({
-    accessToken,
-    refreshToken,
-  }: LoginGoogleRequest): Promise<LoginResponse> {
+  async authenticateGoogleUser(
+    data: LoginGoogleRequest,
+  ): Promise<LoginResponse> {
+    const { accessToken, refreshToken } = data;
     try {
       this.oauthClient.setCredentials({
         access_token: accessToken,
@@ -79,7 +84,7 @@ export class OauthService {
 
       const r = await this.getUserInfo().then(async ({ emailAddresses }) => {
         const email = emailAddresses?.[0].value?.toLowerCase() ?? '';
-        const d = await this.verifyUser(email);
+        const d = await this.verifyUser(email, data);
         return d;
       });
 
@@ -97,9 +102,10 @@ export class OauthService {
   }
 
   @CreateRequestContext()
-  async authenticateAppleUser(code: string): Promise<LoginResponse> {
+  async authenticateAppleUser(data: LoginAppleRequest): Promise<LoginResponse> {
+    const { code } = data;
     try {
-      const data = this.jwt.decode(code, {
+      const decodedToken = this.jwt.decode(code, {
         complete: true,
       }) as {
         header: {
@@ -108,10 +114,10 @@ export class OauthService {
         };
       };
 
-      if (!data) {
+      if (!decodedToken) {
         throw new Error('Invalid token');
       }
-      const header = data?.header;
+      const header = decodedToken?.header;
 
       const { alg, kid } = header;
       const publicKey = (
@@ -125,7 +131,7 @@ export class OauthService {
         issuer: APPLE_ISSUER,
       });
 
-      return this.verifyUser(email);
+      return this.verifyUser(email, data);
     } catch (error: any) {
       this.logger.warn(error);
 
@@ -138,7 +144,10 @@ export class OauthService {
     }
   }
 
-  async verifyUser(email: string) {
+  async verifyUser(
+    email: string,
+    data?: LoginGoogleRequest | LoginAppleRequest,
+  ) {
     const existingUser = await this.em.findOne(User, {
       email,
     });
@@ -157,17 +166,21 @@ export class OauthService {
 
     const credentials = await this.generateCredentials(existingUser.id);
 
+    if (data?.deviceToken?.fcmToken) {
+      await this.registerDeviceToken(existingUser.id, data);
+    }
+
     // Fetch ALL business profiles if user is a vendor
     let businessProfiles: BusinessProfileSummary[] = [];
     if (existingUser.userType === UserType.VENDOR) {
       const profiles = await this.em.find(
         BusinessProfile,
         { user: existingUser.id },
-        { orderBy: { createdAt: 'DESC' } }
+        { orderBy: { createdAt: 'DESC' } },
       );
 
       if (profiles && profiles.length > 0) {
-        businessProfiles = profiles.map(profile => ({
+        businessProfiles = profiles.map((profile) => ({
           id: profile.id,
           businessName: profile.businessName,
           industry: profile.industry,
@@ -188,25 +201,6 @@ export class OauthService {
       }
     }
 
-    // Fetch wallet info via gRPC call to payment service
-    let walletInfo: RegisteredUser['wallet'] | undefined;
-    try {
-      const walletResponse = await this.walletGrpcService.getWallet(existingUser.id);
-      
-      if (walletResponse.success && walletResponse.wallet) {
-        walletInfo = this.walletGrpcService.mapWalletToUserFormat(walletResponse.wallet);
-        this.logger.log(`Fetched wallet info for user ${existingUser.id}`);
-      } else {
-        this.logger.warn(`No wallet found or failed to fetch wallet for user ${existingUser.id}: ${walletResponse.message}`);
-      }
-    } catch (walletError: any) {
-      this.logger.error(
-        `Error fetching wallet for user ${existingUser.id}: ${walletError?.message ?? walletError}`,
-        walletError?.stack,
-      );
-      // Don't fail login if wallet fetch fails
-    }
-
     const userPayload: RegisteredUser = {
       id: existingUser.id,
       firstName: existingUser.firstName,
@@ -220,8 +214,8 @@ export class OauthService {
       source: existingUser.source ?? undefined,
       businessProfiles,
       isIdentityVerified: Boolean(existingUser.isIdentityVerified),
-      identityVerificationType: existingUser.identityVerificationType ?? undefined,
-      wallet: walletInfo,
+      identityVerificationType:
+        existingUser.identityVerificationType ?? undefined,
     };
 
     return {
@@ -252,5 +246,28 @@ export class OauthService {
       });
 
     return { accessToken, refreshToken };
+  }
+
+  private async registerDeviceToken(
+    userId: string,
+    data: LoginGoogleRequest | LoginAppleRequest,
+  ) {
+    if (data.deviceToken?.fcmToken) {
+      try {
+        await this.deviceTokenGrpcService.registerToken({
+          userId,
+          token: data.deviceToken.fcmToken,
+          platform: data.deviceToken.platform,
+        });
+        this.logger.log(
+          `Device token registered for user ${userId} during login`,
+        );
+      } catch (error: any) {
+        this.logger.warn(
+          `Failed to register device token during login for user ${userId}: ${error.message}`,
+        );
+        // Don't fail login if token registration fails
+      }
+    }
   }
 }

@@ -1,7 +1,12 @@
 // src/database/entities/user.entity.ts
-import { CustomBaseEntity } from "./base.entity";
-import { UserRepository } from "../repositories/user.repository";
-import { Entity, EntityRepositoryType, Property } from '@mikro-orm/postgresql';
+import { CustomBaseEntity } from './base.entity';
+import { UserRepository } from '../repositories/user.repository';
+import {
+  Entity,
+  EntityRepositoryType,
+  Filter,
+  Property,
+} from '@mikro-orm/postgresql';
 
 export enum UserType {
   USER = 'user',
@@ -11,6 +16,7 @@ export enum UserType {
 export type IdentityVerificationType = 'KYC' | 'KYB';
 
 @Entity({ repository: () => UserRepository })
+@Filter({ name: 'notDeleted', cond: { deletedAt: null }, default: true })
 export class User extends CustomBaseEntity {
   [EntityRepositoryType]?: UserRepository;
 
@@ -59,6 +65,9 @@ export class User extends CustomBaseEntity {
 
   @Property({ nullable: true })
   lastVerificationId?: string;
+
+  @Property({ nullable: true })
+  deletedAt?: Date;
 
   getFullName(): string {
     return `${this.firstName} ${this.lastName}`;

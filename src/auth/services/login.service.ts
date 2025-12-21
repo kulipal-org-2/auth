@@ -7,10 +7,11 @@ import { CustomLogger as Logger } from 'kulipal-shared';
 import { BusinessProfile, RefreshToken, User, UserType } from 'src/database';
 import type {
   BusinessProfileSummary,
+  LoginRequest,
   LoginResponse,
   RegisteredUser,
 } from '../types/auth.type';
-import { WalletGrpcService } from './wallet-grpc.service';
+import { DeviceTokenGrpcService } from './device-token-grpc.service';
 
 export type LoginType = {
   email: string;
@@ -24,11 +25,11 @@ export class LoginService {
   constructor(
     private readonly em: EntityManager,
     private jwtService: JwtService,
-    private readonly walletGrpcService: WalletGrpcService,
+    private readonly deviceTokenGrpcService: DeviceTokenGrpcService,
   ) {}
 
   @CreateRequestContext()
-  async execute(data: LoginType): Promise<LoginResponse> {
+  async execute(data: LoginRequest): Promise<LoginResponse> {
     this.logger.log(`Attempting to login user with email ${data.email}`);
 
     const email = data.email.trim().toLowerCase();
@@ -42,7 +43,7 @@ export class LoginService {
 
       return {
         message: 'Incorrect email or password provided.',
-        statusCode: HttpStatus.UNAUTHORIZED,
+        statusCode: HttpStatus.BAD_REQUEST,
         success: false,
         user: null,
       };
@@ -56,7 +57,7 @@ export class LoginService {
       );
       return {
         message: 'Incorrect email or password provided.',
-        statusCode: HttpStatus.UNAUTHORIZED,
+        statusCode: HttpStatus.BAD_REQUEST,
         success: false,
         user: null,
       };
@@ -66,7 +67,7 @@ export class LoginService {
       this.logger.warn(`User with email ${email} provided incorrect password`);
       return {
         message: 'Incorrect email or password provided.',
-        statusCode: HttpStatus.UNAUTHORIZED,
+        statusCode: HttpStatus.BAD_REQUEST,
         success: false,
         user: null,
       };
@@ -77,6 +78,21 @@ export class LoginService {
     );
 
     const credentials = await this.generateCredentials(existingUser.id);
+
+    if (data.deviceToken?.fcmToken) {
+      try {
+        await this.deviceTokenGrpcService.registerToken({
+          userId: existingUser.id,
+          token: data.deviceToken.fcmToken,
+          platform: data.deviceToken.platform,
+        });
+      } catch (error: any) {
+        this.logger.warn(
+          `Failed to register device token during login for user ${existingUser.id}: ${error.message}`,
+        );
+        // Don't fail login if token registration fails
+      }
+    }
 
     let businessProfiles: BusinessProfileSummary[] = [];
     if (existingUser.userType === UserType.VENDOR) {
@@ -119,29 +135,6 @@ export class LoginService {
       }
     }
 
-    let walletInfo: RegisteredUser['wallet'] | undefined;
-    try {
-      const walletResponse = await this.walletGrpcService.getWallet(
-        existingUser.id,
-      );
-
-      if (walletResponse.success && walletResponse.wallet) {
-        walletInfo = this.walletGrpcService.mapWalletToUserFormat(
-          walletResponse.wallet,
-        );
-        this.logger.log(`Fetched wallet info for user ${existingUser.id}`);
-      } else {
-        this.logger.warn(
-          `No wallet found or failed to fetch wallet for user ${existingUser.id}: ${walletResponse.message}`,
-        );
-      }
-    } catch (walletError: any) {
-      this.logger.error(
-        `Error fetching wallet for user ${existingUser.id}: ${walletError?.message ?? walletError}`,
-        walletError?.stack,
-      );
-    }
-
     const userPayload: RegisteredUser = {
       id: existingUser.id,
       firstName: existingUser.firstName,
@@ -157,7 +150,6 @@ export class LoginService {
       isIdentityVerified: Boolean(existingUser.isIdentityVerified),
       identityVerificationType:
         existingUser.identityVerificationType ?? undefined,
-      wallet: walletInfo ?? ({} as RegisteredUser['wallet']),
     };
 
     return {
