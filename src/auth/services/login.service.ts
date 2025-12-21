@@ -43,7 +43,7 @@ export class LoginService {
 
       return {
         message: 'Incorrect email or password provided.',
-        statusCode: HttpStatus.UNAUTHORIZED,
+        statusCode: HttpStatus.BAD_REQUEST,
         success: false,
         user: null,
       };
@@ -57,7 +57,7 @@ export class LoginService {
       );
       return {
         message: 'Incorrect email or password provided.',
-        statusCode: HttpStatus.UNAUTHORIZED,
+        statusCode: HttpStatus.BAD_REQUEST,
         success: false,
         user: null,
       };
@@ -67,7 +67,7 @@ export class LoginService {
       this.logger.warn(`User with email ${email} provided incorrect password`);
       return {
         message: 'Incorrect email or password provided.',
-        statusCode: HttpStatus.UNAUTHORIZED,
+        statusCode: HttpStatus.BAD_REQUEST,
         success: false,
         user: null,
       };
@@ -85,7 +85,6 @@ export class LoginService {
           userId: existingUser.id,
           token: data.deviceToken.fcmToken,
           platform: data.deviceToken.platform,
-          deviceId: data.deviceToken.deviceId,
         });
       } catch (error: any) {
         this.logger.warn(

@@ -6,7 +6,6 @@ export type Platform = 'ios' | 'android';
 export type DeviceTokenFields = {
   fcmToken?: string;
   platform?: Platform;
-  deviceId?: string;
 };
 
 export type RegisterRequest = {

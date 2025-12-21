@@ -6,7 +6,6 @@ export interface RegisterDeviceTokenRequest {
   userId: string;
   token: string;
   platform?: Platform; // 'ios' | 'android' - optional
-  deviceId?: string;
 }
 
 // Alias for consistency - same as RegisterDeviceTokenRequest
