@@ -27,12 +27,16 @@ import {
   PaginatedResponse,
   createPaginationMeta,
 } from 'src/lib/utils/pagination.util';
+import { WalletGrpcService } from './wallet-grpc.service';
 
 @Injectable()
 export class BusinessProfileService {
   private readonly logger = new Logger(BusinessProfileService.name);
 
-  constructor(private readonly em: EntityManager) { }
+  constructor(
+    private readonly em: EntityManager,
+    private readonly walletGrpcService: WalletGrpcService,
+  ) { }
 
   @CreateRequestContext()
   async createBusinessProfile(
@@ -82,6 +86,28 @@ export class BusinessProfileService {
       user.userType = UserType.VENDOR;
       await this.em.flush();
       this.logger.log(`Updated user ${userId} userType to vendor`);
+
+      try {
+        const walletUpdateResult = await this.walletGrpcService.updateWalletAccountOwnerType(
+          userId,
+          'vendor',
+        );
+
+        if (walletUpdateResult.success) {
+          this.logger.log(
+            `Successfully updated wallet accountOwnerType to vendor for user ${userId}`,
+          );
+        } else {
+          this.logger.warn(
+            `Failed to update wallet accountOwnerType for user ${userId}: ${walletUpdateResult.message}`,
+          );
+        }
+      } catch (walletError: any) {
+        this.logger.error(
+          `Error updating wallet accountOwnerType for user ${userId}: ${walletError.message}`,
+          walletError.stack,
+        );
+      }
 
       if (data.operatingTimes) {
         await this.updateOperatingTimes(businessProfile, data.operatingTimes);
