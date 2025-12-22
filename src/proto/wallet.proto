@@ -17,6 +17,8 @@ service WalletService {
   rpc AddBeneficiary(AddBeneficiaryRequest) returns (AddBeneficiaryResponse);
   rpc GetBeneficiaries(GetBeneficiariesRequest) returns (GetBeneficiariesResponse);
   rpc DeleteBeneficiary(DeleteBeneficiaryRequest) returns (MessageResponse);
+  rpc PayForOrderWithWallet(PayForOrderWithWalletRequest) returns (PayForOrderWithWalletResponse);
+  rpc UpdateWalletAccountOwnerType(UpdateWalletAccountOwnerTypeRequest) returns (CreateWalletResponse); 
 }
 
 message WalletDto {
@@ -45,6 +47,7 @@ message CreateWalletResponse {
 
 message GetWalletRequest {
   // userId extracted from JWT token in metadata
+  optional string sessionToken = 1;
 }
 
 message GetWalletResponse {
@@ -56,6 +59,7 @@ message GetWalletResponse {
 
 message GetWalletByAccountNumberRequest {
   string accountNumber = 1;
+  optional string sessionToken = 2;
 }
 
 message SetWalletPinRequest {
@@ -198,4 +202,32 @@ message MessageResponse {
   bool success = 1;
   int32 statusCode = 2;
   string message = 3;
+}
+
+message PayForOrderWithWalletRequest {
+  string orderId = 1;
+  string vendorId = 2;
+  double amount = 3;
+  double charge = 4;
+  string description = 5;
+  string userId = 6;
+}
+
+message PaymentResponseData {
+  string orderId = 1;
+  string reference = 2;
+  double userWalletBalance = 3;
+  double vendorLedgerBalance = 4;
+  string orderStatus = 5;
+}
+
+message PayForOrderWithWalletResponse {
+  bool success = 1;
+  int32 statusCode = 2;
+  string message = 3;
+  optional PaymentResponseData data = 4;
+}
+
+message UpdateWalletAccountOwnerTypeRequest {
+  string accountOwnerType = 1; // "user" or "vendor"
 }
