@@ -12,6 +12,7 @@ import {
   GetWalletResponse,
   WalletServiceClient,
   WalletDto,
+  UpdateWalletAccountOwnerTypeRequest,
 } from '../interfaces/wallet-service.interface';
 import type { ClientGrpc } from '@nestjs/microservices';
 import { JwtService } from '@nestjs/jwt';
@@ -87,6 +88,78 @@ export class WalletGrpcService implements OnModuleInit {
     } catch (error: any) {
       this.logger.error(
         `Unexpected error during wallet creation for user ${userId}: ${error?.message ?? error}`,
+        error?.stack,
+      );
+
+      return {
+        success: false,
+        statusCode: 500,
+        message: `Unexpected error: ${error?.message ?? 'Unknown error'}`,
+        wallet: null,
+      };
+    }
+  }
+
+  async updateWalletAccountOwnerType(
+    userId: string,
+    accountOwnerType: string,
+  ): Promise<CreateWalletResponse> {
+    if (!this.walletClient) {
+      this.logger.error('Wallet service client is not available');
+      return {
+        success: false,
+        statusCode: HttpStatus.SERVICE_UNAVAILABLE,
+        message: 'Wallet service is unavailable',
+        wallet: null,
+      };
+    }
+
+    try {
+      const token = this.jwtService.sign({ userId });
+
+      const metadata = new Metadata();
+      metadata.set('authorization', `Bearer ${token}`);
+
+      const request: UpdateWalletAccountOwnerTypeRequest = {
+        accountOwnerType,
+      };
+
+      this.logger.log(
+        `Updating wallet accountOwnerType to ${accountOwnerType} for user ${userId} via gRPC`,
+      );
+
+      const response = await lastValueFrom(
+        this.walletClient.updateWalletAccountOwnerType(request, metadata).pipe(
+          timeout(5000),
+          catchError((error) => {
+            this.logger.error(
+              `gRPC call failed for wallet accountOwnerType update (user ${userId}): ${error?.message ?? error}`,
+              error?.stack,
+            );
+            return of({
+              success: false,
+              statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+              message: `gRPC communication failed: ${error?.message ?? 'Unknown error'}`,
+              wallet: null,
+            } as CreateWalletResponse);
+          }),
+        ),
+      );
+
+      if (response.success) {
+        this.logger.log(
+          `Successfully updated wallet accountOwnerType to ${accountOwnerType} for user ${userId}`,
+        );
+      } else {
+        this.logger.warn(
+          `Wallet accountOwnerType update failed for user ${userId}: ${response.message}`,
+        );
+      }
+
+      return response;
+    } catch (error: any) {
+      this.logger.error(
+        `Unexpected error updating wallet accountOwnerType for user ${userId}: ${error?.message ?? error}`,
         error?.stack,
       );
 

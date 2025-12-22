@@ -36,6 +36,17 @@ export interface CreateWalletResponse {
   wallet?: WalletDto | null;
 }
 
+export interface UpdateWalletAccountOwnerTypeRequest {
+  accountOwnerType: string;
+}
+
+export interface UpdateWalletAccountOwnerTypeResponse {
+  success: boolean;
+  statusCode: number;
+  message: string;
+  wallet: WalletDto | null;
+}
+
 export interface WalletServiceClient {
   createWallet(
     request: CreateWalletRequest,
@@ -46,4 +57,9 @@ export interface WalletServiceClient {
     request: GetWalletRequest,
     metadata?: Metadata,
   ): Observable<GetWalletResponse>;
+
+  updateWalletAccountOwnerType(
+    request: UpdateWalletAccountOwnerTypeRequest,
+    metadata?: Metadata,
+  ): Observable<UpdateWalletAccountOwnerTypeResponse>;
 }
