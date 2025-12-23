@@ -19,7 +19,7 @@ export class RegisterService {
     private readonly em: EntityManager,
     private readonly walletGrpcService: WalletGrpcService,
     private readonly deviceTokenGrpcService: DeviceTokenGrpcService,
-  ) {}
+  ) { }
 
   @CreateRequestContext()
   async execute(data: RegisterRequest): Promise<RegisterResponse> {
@@ -32,6 +32,7 @@ export class RegisterService {
       phoneNumber,
       source,
       agreeToTerms,
+      avatarUrl,
     } = data;
 
     if (!phoneNumber?.trim()) {
@@ -89,6 +90,7 @@ export class RegisterService {
       phoneNumber: normalizedPhoneNumber,
       source,
       userType: UserType.USER,
+      avatarUrl,
     });
 
     await this.em.persistAndFlush(user);
@@ -151,6 +153,7 @@ export class RegisterService {
         businessProfiles: [],
         isIdentityVerified: Boolean(user.isIdentityVerified),
         identityVerificationType: user.identityVerificationType ?? undefined,
+        avatarUrl: user.avatarUrl ?? undefined,
       },
     };
   }
