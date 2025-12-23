@@ -5,6 +5,7 @@ import { KycService } from './kyc/kyc.service';
 import { KybService } from './kyb/kyb.service';
 import { User } from 'src/database/entities/user.entity';
 import { randomUUID } from 'crypto';
+import { BusinessProfile } from 'src/database';
 
 export enum IDentificationType {
   NIN_SLIP = 'NIN_SLIP',
@@ -37,6 +38,7 @@ export interface VerificationResult {
   skipVerification?: boolean;
   user?: User;
   timestamp: string;
+  businessProfilesUpdated?: number;
 }
 
 @Injectable()
@@ -47,7 +49,7 @@ export class VerificationOrchestratorService {
     private readonly em: EntityManager,
     private readonly kycService: KycService,
     private readonly kybService: KybService,
-  ) {}
+  ) { }
 
   @CreateRequestContext()
   async initiateVerification(
@@ -111,8 +113,12 @@ export class VerificationOrchestratorService {
         );
       }
 
+      let businessProfilesUpdated = 0;
+
       // Update user verification status if successful
       if (result.success) {
+        const wasVerified = user.isIdentityVerified;
+
         user.isIdentityVerified = true;
         user.identityVerificationType = verificationType;
         user.identityVerifiedAt = new Date();
@@ -122,6 +128,13 @@ export class VerificationOrchestratorService {
         this.logger.log(
           `Successfully updated verification status for user: ${userId}`,
         );
+
+        if (!wasVerified) {
+          this.logger.log(
+            `User ${userId} just got verified, updating existing business profiles`,
+          );
+          businessProfilesUpdated = await this.updateBusinessProfilesForVerifiedUser(userId);
+        }
       }
 
       return {
@@ -137,6 +150,68 @@ export class VerificationOrchestratorService {
         error.stack,
       );
       throw new BadRequestException(`Verification failed: ${error.message}`);
+    }
+  }
+
+  @CreateRequestContext()
+  private async updateBusinessProfilesForVerifiedUser(
+    userId: string,
+  ): Promise<number> {
+    this.logger.log(
+      `Updating business profiles for newly verified user: ${userId}`,
+    );
+
+    try {
+      // Find all business profiles for this user
+      const businessProfiles = await this.em.find(BusinessProfile, {
+        user: { id: userId }, 
+      });
+
+      if (businessProfiles.length === 0) {
+        this.logger.log(`No business profiles found for user ${userId}`);
+        return 0;
+      }
+
+      this.logger.log(
+        `Found ${businessProfiles.length} business profile(s) for user ${userId}`,
+      );
+
+      // Update verification status for all profiles that need it
+      let updatedCount = 0;
+      for (const profile of businessProfiles) {
+        const needsUpdate =
+          !profile.isThirdPartyVerified || !profile.isKycVerified;
+
+        if (needsUpdate) {
+          profile.isThirdPartyVerified = true;
+          profile.isKycVerified = true;
+          updatedCount++;
+
+          this.logger.log(
+            `Updated verification status for business profile: ${profile.id}`,
+          );
+        }
+      }
+
+      if (updatedCount > 0) {
+        await this.em.flush();
+        this.logger.log(
+          `Successfully updated ${updatedCount} business profile(s) for verified user ${userId}`,
+        );
+      } else {
+        this.logger.log(
+          `All business profiles for user ${userId} are already verified`,
+        );
+      }
+
+      return updatedCount;
+    } catch (error: any) {
+      this.logger.error(
+        `Error updating business profiles for user ${userId}: ${error.message}`,
+        error.stack,
+      );
+      // Don't throw - we don't want to fail the verification if profile update fails
+      return 0;
     }
   }
 

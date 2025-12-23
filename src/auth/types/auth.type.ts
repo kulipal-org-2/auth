@@ -16,6 +16,7 @@ export type RegisterRequest = {
   agreeToTerms: boolean;
   source?: string;
   phoneNumber: string;
+  avatarUrl?: string;
   deviceToken?: DeviceTokenFields;
 };
 
