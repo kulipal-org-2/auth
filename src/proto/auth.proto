@@ -59,6 +59,7 @@ message RegisterDto {
   string phoneNumber = 6;
   optional string source = 7;
   optional DeviceTokenFields deviceToken = 8;
+  optional string avatarUrl = 9;
 }
 
 message LoginGoogleDto {
