@@ -36,7 +36,7 @@ export class BusinessProfileService {
   constructor(
     private readonly em: EntityManager,
     private readonly walletGrpcService: WalletGrpcService,
-  ) { }
+  ) {}
 
   @CreateRequestContext()
   async createBusinessProfile(
@@ -88,10 +88,11 @@ export class BusinessProfileService {
       this.logger.log(`Updated user ${userId} userType to vendor`);
 
       try {
-        const walletUpdateResult = await this.walletGrpcService.updateWalletAccountOwnerType(
-          userId,
-          'vendor',
-        );
+        const walletUpdateResult =
+          await this.walletGrpcService.updateWalletAccountOwnerType(
+            userId,
+            'vendor',
+          );
 
         if (walletUpdateResult.success) {
           this.logger.log(
@@ -579,6 +580,7 @@ export class BusinessProfileService {
         ? profile.operatingTimes.getItems().map(this.mapOperatingTimesToDto)
         : [],
       createdAt: profile.createdAt ?? new Date(),
+      userId: profile.user.id, // Include userId for internal gRPC calls
     };
   }
 
