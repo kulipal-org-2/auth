@@ -260,6 +260,7 @@ message PublicBusinessProfileDto {
   bool isKycVerified = 9;
   repeated OperatingTimesDto operatingTimes = 10;
   string createdAt = 11;
+  optional string userId = 12; // Included for internal gRPC calls, excluded in HTTP responses
 }
 
 message CreateBusinessProfileDto {

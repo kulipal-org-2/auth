@@ -98,6 +98,7 @@ export interface PublicBusinessProfileDto {
   isKycVerified?: boolean;
   operatingTimes: OperatingTimesDto[];
   createdAt: Date;
+  userId?: string; // Included for internal gRPC calls, excluded in HTTP responses
 }
 
 export interface BusinessProfileResponse {
